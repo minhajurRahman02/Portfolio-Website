@@ -1,0 +1,840 @@
+/* ---------- Root Theme Variables ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;900&display=swap');
+
+* {
+    font-family: "Nunito Sans", sans-serif;
+    font-weight: 400;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+:root {
+    --bg: #0f0f0f;
+    --bg-overlay: rgba(15, 15, 15, 0.65);
+    --text: #f5f5f5;
+    --subtext: #b3b3b3;
+    --accent: #4d79ff;
+    --nav-bg: rgba(15, 15, 15, 0.8);
+    --slide-width: 100%;
+    --slide-height: 560px;
+    --bg-opacity: 0.75;
+    --bg-ratio: 60%;
+    /* image section height */
+    --text-ratio: 40%;
+}
+
+@media (max-width: 768px) {
+    .research-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 18px;
+    }
+
+    .research-card img {
+        width: 100%;
+        border-radius: 12px;
+        margin-bottom: 14px;
+    }
+
+    .modal-content {
+        width: 90%;
+        max-height: 92vh;
+    }
+
+    .modal-image {
+        height: 150px;
+    }
+
+    .nav-links {
+        display: flex;
+        overflow-x: auto;
+        gap: 16px;
+        padding-bottom: 8px;
+    }
+
+    .nav-links::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .nav-links::-webkit-scrollbar-thumb {
+        background: rgba(77, 121, 255, 0.5);
+        border-radius: 2px;
+    }
+
+    .edu-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+
+    .edu-right span {
+        font-size: 1rem;
+    }
+
+    .skills-deck {
+        position: static;
+        height: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        padding: 24px 0;
+    }
+
+    .skill-card {
+        position: relative;
+        transform: none;
+        width: 92%;
+        left: 0 !important;
+        margin: 0 auto;
+    }
+
+    .skill-card.hovered {
+        transform: none;
+        z-index: auto;
+    }
+}
+
+/* --- Initial invisible states --- */
+.profile-container,
+#name,
+#rotating-identity,
+#section-navbar a {
+    opacity: 0;
+}
+
+/* back to top button */
+#myBtn {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 30px;
+    z-index: 99;
+    font-size: 25px;
+    border: 2px solid whitesmoke;
+    outline: none;
+    background-color: transparent;
+    color: white;
+    cursor: pointer;
+    padding: 15px;
+    border-radius: 100px;
+}
+
+body.light-mode #myBtn {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 30px;
+    z-index: 99;
+    font-size: 25px;
+    border: 2px solid rgb(70, 70, 70);
+    outline: none;
+    background-color: transparent;
+    color: rgb(70, 70, 70);
+    cursor: pointer;
+    padding: 15px;
+    border-radius: 100px;
+}
+
+#myBtn:hover {
+    transition: 0.4s ease;
+    scale: 1.2;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* --- Animations --- */
+@keyframes slideFromTop {
+    0% {
+        transform: translateY(-60px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideFromBottom {
+    0% {
+        transform: translateY(60px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideFromRight {
+    0% {
+        transform: translateX(60px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* --- Apply animation --- */
+.profile-container {
+    animation: slideFromTop 1.5s ease forwards;
+}
+
+#name {
+    animation: slideFromBottom 1s ease forwards;
+    animation-delay: 0.2s;
+}
+
+#rotating-identity {
+    animation: slideFromBottom 1s ease forwards;
+    animation-delay: 0.4s;
+}
+
+#section-navbar a {
+    animation: slideFromRight 0.9s ease forwards;
+    animation-delay: calc(0.2s + var(--i) * 0.12s);
+}
+
+.reveal {
+    opacity: 0;
+    transform: translateY(70px);
+    transition: all 1s ease-out;
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+
+
+a,
+.btn,
+.contact-pill,
+.link {
+    cursor: pointer;
+}
+
+body {
+    margin: 0;
+    background: var(--bg) url('/images/BG_Image_1.jpg') no-repeat center center fixed;
+    background-size: cover;
+    color: var(--text);
+    transition: all 0.4s ease;
+}
+
+/* Overlay for readability */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-overlay);
+    pointer-events: none;
+    z-index: -1;
+    transition: all 0.4s ease;
+}
+
+body.light-mode {
+    background: var(--bg) url('/images/BG_Image_2.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+
+/* ---------- NAVBAR ---------- */
+#section-navbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 18px 40px;
+    /* background: var(--nav-bg); */
+    background: transparent;
+    backdrop-filter: blur(10px);
+    /* mask-image: linear-gradient(to bottom, black 0%, transparent 100%); */
+    /* Example with a linear gradient mask */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    /* Horizontal offset, vertical offset, blur radius, color */
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    gap: 20px;
+}
+
+.nav-links {
+    display: flex;
+    gap: 26px;
+}
+
+.nav-links a {
+    color: var(--text);
+    text-decoration: none;
+    transition: 0.3s ease;
+}
+
+.nav-links a:hover {
+    color: var(--accent);
+}
+
+/* Dark Mode Bulb Switch */
+#theme-switch-container {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#theme-bulb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: #111;
+    transition: all 0.4s ease;
+}
+
+#theme-bulb.on {
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+}
+
+/* ---------- HERO ---------- */
+#hero-section {
+    text-align: center;
+    padding: 80px 20px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Profile Image + Geo Mask */
+.profile-container {
+    width: 250px;
+    height: 250px;
+    margin: auto;
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.4s ease;
+}
+
+.profile-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+/* Hover Animations */
+.profile-container:hover img {
+    transform: scale(1.06);
+}
+
+.profile-container:hover .geo-mask {
+    opacity: 1;
+    animation: ripple 1.2s ease-out;
+}
+
+/* Ripple keyframes */
+@keyframes ripple {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.7;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(1.3);
+        opacity: 0;
+    }
+}
+
+/* ---------- TEXT ---------- */
+#name {
+    margin-top: 22px;
+    font-size: 42px;
+    font-weight: 800;
+}
+
+#rotating-identity {
+    font-size: 18px;
+    font-family: 'Courier New', Courier, monospace;
+    margin-top: 6px;
+    color: var(--subtext);
+    height: 26px;
+    display: inline-block;
+    min-width: 280px;
+    font-weight: 700;
+    /* reserve space, prevents flicker/jump */
+}
+
+
+/* ---------- DARK MODE ---------- */
+body.light-mode {
+    --bg: #f9f9f9;
+    --bg-overlay: rgba(255, 255, 255, 0.6);
+    --text: #121212;
+    --subtext: #555;
+    --accent: #4d79ff;
+    --nav-bg: rgba(255, 255, 255, 0.85);
+}
+
+.portrait-blob {
+    transition: box-shadow 0.4s ease, transform 0.2s ease;
+    transform: none;
+    /* remove hover lift/rotate */
+}
+
+.portrait-blob:hover {
+    box-shadow: 0 0 24px 4px var(--neon), 0 6px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Hide default checkbox */
+/* ------ TOGGLE SWITCH BASE ------ */
+#theme-switch-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* Hide native checkbox */
+.checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 60px;
+    height: 30px;
+    background: #222;
+    border-radius: 30px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.4s ease;
+    outline: none;
+    box-shadow: 20px solid black;
+}
+
+/* Slider knob */
+.checkbox::before {
+    content: "🌕";
+    /* Moon */
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgb(255, 196, 0);
+    transition: 0.35s ease;
+}
+
+/* Background when ON */
+.checkbox:checked {
+    background: lavenderblush;
+}
+
+/* Move knob and change icon when ON */
+.checkbox:checked::before {
+    transform: translateX(30px);
+    content: "🌑";
+    /* Sun */
+}
+
+
+
+
+
+
+
+
+/*Section 2, 3*/
+
+/* ---------- Section Styling ---------- */
+.section-title {
+    text-align: center;
+    font-size: 32px;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+#about-section {
+    width: 100%;
+    padding: 80px 20px;
+}
+
+.about-wrapper {
+    max-width: 800px;
+    margin: auto;
+    text-align: center;
+}
+
+.about-text {
+    font-size: 18px;
+    line-height: 1.7;
+    opacity: 0.9;
+}
+
+/* ---------- Research Cards ---------- */
+#research-section {
+    width: 100%;
+    padding: 80px 20px;
+}
+
+.research-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.research-card {
+    width: 300px;
+    display: flex;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 16px;
+    background: var(--bg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transform: perspective(700px) rotateX(45deg) scale(0.9);
+    box-shadow: 5px 10px 10px rgba(0, 0, 0, 1);
+    transition: transform 0.5s ease, box-shadow 0.6s ease;
+}
+
+.research-card img {
+    width: 90px;
+    height: 90px;
+    border-radius: 12px;
+    /* object-fit: cover; */
+}
+
+.research-info {
+    margin-left: 14px;
+}
+
+.research-card:hover {
+    transform: scale(1.05);
+    box-shadow: 10px 10px 25px rgba(0, 0, 0, 0.9);
+}
+
+
+
+/* ---------- Modal ---------- */
+/* ----- MODAL BACKDROP ----- */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .35s ease;
+    z-index: 999999;
+}
+
+/* ----- MODAL ACTIVE STATE ----- */
+.modal.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ----- SMOOTH ZOOM MODAL CONTENT ----- */
+.modal-content {
+    background: var(--bg);
+    width: min(90%, 750px);
+    max-height: 80vh;
+    border-radius: 16px;
+    padding-bottom: 20px;
+    position: relative;
+    overflow-y: auto;
+    transform: scale(0.7);
+    opacity: 0;
+    transition: transform .35s ease, opacity .35s ease;
+}
+
+/* ----- MODAL ZOOM IN ----- */
+.modal.active .modal-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* ----- MODAL ZOOM OUT ANIMATION BEFORE CLOSING ----- */
+.modal.closing .modal-content {
+    transform: scale(0.6);
+    opacity: 0;
+}
+
+/* ----- IMAGE HEADER ----- */
+.modal-image {
+    height: 350px;
+    background-size: cover;
+}
+
+/* ----- TEXT ----- */
+.modal-content h2 {
+    margin: 20px;
+    font-weight: 700;
+}
+
+.modal-content p {
+    margin: 0 20px 20px;
+    line-height: 1.6;
+    opacity: 0.9;
+}
+
+/* ----- CLOSE BUTTON ----- */
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(0, 0, 0, 0.65);
+    color: white;
+    padding: 8px 14px;
+    font-size: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: .3s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255, 0, 0, 0.8);
+}
+
+/* section 4 */
+
+#education {
+    padding: 80px 20%;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 40px;
+}
+
+.edu-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.edu-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 28px;
+    background: transparent;
+    border-radius: 14px;
+    box-shadow:
+        6px 6px 10px #000000,
+        /* Darker shadow for the bottom-right */
+        -6px -6px 10px #4b4b4b;
+    /* Lighter shadow for the top-left */
+    transition: transform .35s ease, box-shadow .35s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+body.light-mode .edu-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 28px;
+    background: transparent;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* A soft, neutral background color */
+    box-shadow:
+        6px 6px 12px #2b2b2b,
+        /* Darker shadow for the bottom-right */
+        -6px -6px 12px #ffffff;
+    /* Lighter shadow for the top-left */
+    transition: transform .35s ease, box-shadow .35s ease;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.edu-card:hover {
+    border: none;
+    transform: scale(1.04);
+}
+
+.edu-left h3 {
+    font-size: 1.3rem;
+    margin-bottom: 3px;
+    font-weight: 600;
+}
+
+.edu-left p {
+    opacity: .8;
+    margin: 4px 0;
+}
+
+.edu-right span {
+    font-size: 1.1rem;
+    font-weight: 600;
+    opacity: .75;
+}
+
+/* skill card section */
+.tech-skills {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 40px;
+}
+
+.skills-deck {
+    display: flex;
+    flex-direction: column;
+    padding: 40px 20px;
+    /* 20px left/right spacing from screen edges */
+    align-items: center;
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    /* adjust to fit your design */
+    height: 360px;
+    /* enough vertical room for pop */
+    margin: 0 auto;
+    /* pointer-events: auto; */
+    padding: 40px 0;
+}
+
+/* default dark mode skill card*/
+.skill-card {
+    align-items: center;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 200px;
+    /* fixed width */
+    height: 300px;
+    /* border: 2px solid whitesmoke; */
+    border-radius: 20px;
+    border: 1px solid #243B55;
+    padding: 20px;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 8px 8px 24px rgba(0, 0, 0, 0.14);
+    transition: left 0.5s ease, transform 0.5s ease;
+    /* will-change: transform, left; */
+    overflow: hidden;
+    justify-content: space-between;
+    box-sizing: border-box;
+    background: transparent;
+    backdrop-filter: blur(100px);
+    --shine-angle: 45deg;
+    /* purple to blue gradient */
+}
+
+/* Hovered card visual (scale only) */
+.skill-card.hovered {
+    transform: translateY(-50%) scale(1.13);
+    background: linear-gradient(142deg, rgba(13, 20, 31, 1) 0%, rgba(31, 46, 64, 1) 35%, rgba(104, 122, 140, 1) 100%);
+    box-shadow: 0 0 28px rgba(146, 148, 248, 0.55);
+    z-index: 999;
+}
+
+.skill-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 120%;
+    height: 100%;
+    background: linear-gradient(var(--shine-angle),
+            /* ✅ ROTATION CONTROL */
+            transparent,
+            rgba(255, 255, 255, 0.45),
+            transparent);
+    transition: left 0.75s ease;
+    pointer-events: none;
+    backdrop-filter: blur(1px);
+}
+
+.skill-card:hover::before {
+    left: 120%;
+}
+
+
+/* light mode skill card*/
+body.light-mode .skill-card {
+    align-items: center;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 200px;
+    /* fixed width */
+    height: 300px;
+    border: 1px solid rgb(227, 197, 255);
+    border-radius: 20px;
+    padding: 20px;
+    flex-direction: column;
+    color: var(--text);
+    box-shadow: 8px 8px 24px rgba(0, 0, 0, 0.2);
+    transition: left 0.5s ease, transform 0.5s ease;
+    /* will-change: transform, left; */
+    overflow: hidden;
+    justify-content: space-between;
+    box-sizing: border-box;
+    background: linear-gradient(135deg, #654ea3, #eaafc8);
+    /* purple to blue gradient */
+}
+
+/* Hovered card visual (scale only) */
+body.light-mode .skill-card.hovered {
+    transform: translateY(-50%) scale(1.13);
+    background: linear-gradient(135deg, #FC5C7D, #6A82FB);
+    z-index: 999;
+    box-shadow: 0 0 18px rgba(147, 51, 234, 0.5);
+}
+
+/* keep default stacking behind hovered */
+/* .skill-card.default-z {
+    z-index: 1;
+} */
+
+.skill-card ul {
+    padding-left: 1.2em;
+    /* add space inside the card */
+    margin: 0;
+    /* reset default margin */
+}
+
+.skill-card li {
+    margin-bottom: 6px;
+    /* spacing between bullets */
+}
+
+/* -------------------------------------------------------------------- */
+
+/* project section */
+
+
+
+/* parallax image section */

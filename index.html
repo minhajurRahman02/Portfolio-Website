@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Portfolio | MD. Minhajur Rahman</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- TOP SECTION WRAPPER -->
+    <div id="section-top">
+
+        <!-- 🔹 NAVIGATION -->
+        <div id="section-navbar">
+            <div class="nav-links">
+                <a style="--i:0">Projects</a>
+                <a style="--i:1">Resume</a>
+                <a style="--i:2">Personal Info</a>
+                <a style="--i:3">Educational Info</a>
+                <a style="--i:4">Interests</a>
+                <a style="--i:5">Blog</a>
+
+            </div>
+            <div id="theme-switch-container">
+                <input type="checkbox" class="checkbox" id="dark-toggle">
+            </div>
+
+        </div>
+
+        <!-- 🔹 HERO SECTION -->
+        <div id="hero-section">
+            <div class="profile-container">
+                <img src="images/portfolio_dp_2.1.jpg" alt="Profile">
+                <!-- <div class="geo-mask"></div> -->
+            </div>
+
+            <div id="name">MD MINHAJUR RAHMAN</div>
+            <div id="rotating-identity"></div>
+        </div>
+
+    </div>
+
+    <!-- ---------- SECTION 2: ABOUT ME ---------- -->
+    <section id="about-section">
+        <div class="about-wrapper">
+            <h2 class="section-title">About Me</h2>
+            <p class="about-text">
+                I'm a passionate learner and researcher currently exploring the intersection of
+                artificial intelligence, human-centered computing, and computational neuroscience.
+                My goal is to build scalable intelligent systems that bridge theoretical understanding
+                with real-world applications. I enjoy designing, experimenting, and transforming ideas
+                into meaningful solutions. Outside research, I enjoy writing, traveling, and building
+                small passion projects that challenge my thinking.
+            </p>
+        </div>
+    </section>
+
+    <!-- ---------- SECTION 3: CURRENT RESEARCH ---------- -->
+    <section id="research-section">
+        <h2 class="section-title">Current Research</h2>
+
+        <div class="research-container">
+
+            <!-- Card 1 -->
+            <div class="research-card" data-modal="modal1">
+                <img src="images/BG_Image_2.jpg" alt="">
+                <div class="research-info">
+                    <h3>Multimodal TB Detection</h3>
+                    <p>AI system combining X-rays and clinical data. </p>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="research-card" data-modal="modal2">
+                <img src="images/BG_Image_2.jpg" alt="">
+                <div class="research-info">
+                    <h3>Generative AI for Education</h3>
+                    <p>Personalized learning using LLMs.</p>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="research-card" data-modal="modal3">
+                <img src="images/BG_Image_2.jpg" alt="">
+                <div class="research-info">
+                    <h3>Explainable Deep Learning</h3>
+                    <p>Making neural models interpretable.</p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ---------- MODALS ---------- -->
+    <div id="modal1" class="modal">
+        <div class="modal-content">
+            <div class="modal-image" style="background-image: url('images/BG_Image_1.jpg');"></div>
+            <span class="modal-close">&times;</span>
+            <h2>Multimodal TB Detection</h2>
+            <p>
+                A deep learning system integrating radiological imaging and structured health records
+                to improve screening accuracy in low-resource clinical environments.
+            </p>
+        </div>
+    </div>
+
+    <div id="modal2" class="modal">
+        <div class="modal-content">
+            <div class="modal-image" style="background-image: url('images/BG_Image_1.jpg');"></div>
+            <span class="modal-close">&times;</span>
+            <h2>Generative AI for Personalized Learning</h2>
+            <p>
+                Research exploring adaptive learning models powered by fine-tuned LLMs to deliver
+                dynamic tutoring, curriculum shaping, and learning support at scale.
+            </p>
+        </div>
+    </div>
+
+    <div id="modal3" class="modal">
+        <div class="modal-content">
+            <div class="modal-image" style="background-image: url('images/BG_Image_1.jpg');"></div>
+            <span class="modal-close">&times;</span>
+            <h2>Explainable Deep Learning</h2>
+            <p>
+                Developing interpretable mechanisms using SHAP, Grad-CAM, and symbolic reasoning to
+                provide transparency and trust in medical AI systems.
+            </p>
+        </div>
+    </div>
+    <!-- back to top button -->
+    <button onclick="topFunction()" id="myBtn" title="Go to top">⮝</button>
+
+    <!-- section 4: educational info -->
+    <section id="education">
+        <h2 class="section-title">Educational Background</h2>
+
+        <div class="edu-container">
+            <div class="edu-card">
+                <div class="edu-left">
+                    <h3>Bachelor of science</h3>
+                    <p>Computer Science and Engineering(CSE)</p>
+                    <p>United International University(UIU)</p>
+                </div>
+
+                <div class="edu-right">
+                    <span>Expected Graduation 2026</span>
+                </div>
+            </div>
+
+            <div class="edu-card">
+                <div class="edu-left">
+                    <h3>Higher Secondary (HSC)</h3>
+                    <p>Science</p>
+                    <p>St. Joseph Higher Secondary School</p>
+                    <strong>Result: GPA 5.00 out of 5.00</strong>
+                </div>
+
+                <div class="edu-right">
+                    <span>2021</span>
+                </div>
+            </div>
+
+            <div class="edu-card">
+                <div class="edu-left">
+                    <h3>Secondary School Certificate (SSC)</h3>
+                    <p>Science</p>
+                    <p>Jatrabari Ideal School & College</p>
+                    <strong>Result: GPA 5.00 out of 5.00</strong>
+                </div>
+
+                <div class="edu-right">
+                    <span>2019</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- skill card section -->
+
+    <section id="skills-section">
+        <h2 class="tech-skills">Technical Skills</h2>
+        <div class="skills-deck">
+
+            <div class="skill-card">
+                <div class="skill-inner">
+                    <h3>Programming Languages</h3>
+                    <ul>
+                        <li>C</li>
+                        <li>C++</li>
+                        <li>Java</li>
+                        <li>Python</li>
+                        <li>JavaScript</li>
+                        <li>MySQL</li>
+                        <li>Assembly</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="skill-card">
+                <div class="skill-inner">
+                    <h3>Web Development</h3>
+                    <ul>
+                        <li>HTML</li>
+                        <li>CSS</li>
+                        <li>JavaScript</li>
+                        <li>React</li>
+                        <li>Node.js</li>
+                        <li>Express</li>
+                        <li>Bootstrap</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="skill-card">
+                <div class="skill-inner">
+                    <h3>Web Development</h3>
+                    <ul>
+                        <li>HTML</li>
+                        <li>CSS</li>
+                        <li>JavaScript</li>
+                        <li>React</li>
+                        <li>Node.js</li>
+                        <li>Express</li>
+                        <li>Bootstrap</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="skill-card">
+                <div class="skill-inner">
+                    <h3>Database Management</h3>
+                    <ul>
+                        <li>MySQL</li>
+                        <li>PostgreSQL</li>
+                        <li>MongoDB</li>
+                        <li>Redis</li>
+                        <li>SQLite</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="skill-card">
+                <div class="skill-inner">
+                    <h3>Machine Learning & AI</h3>
+                    <ul>
+                        <li>Scikit-learn</li>
+                        <li>TensorFlow</li>
+                        <li>PyTorch</li>
+                        <li>Pandas</li>
+                        <li>Numpy</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="skill-card">
+                <div class="skill-inner">
+                    <h3>Version Control</h3>
+                    <ul>
+                        <li>Git</li>
+                        <li>GitHub</li>
+                        <li>GitLab</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="skill-card">
+                <div class="skill-inner">
+                    <h3>Operating Systems</h3>
+                    <ul>
+                        <li>Windows</li>
+                        <li>Linux</li>
+                        <li>MacOS</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="skill-card">
+                <div class="skill-inner">
+                    <h3>Design & Multimedia</h3>
+                    <ul>
+                        <li>Photoshop</li>
+                        <li>Illustrator</li>
+                        <li>After Effects</li>
+                        <li>Figma</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="skill-card">
+                <div class="skill-inner">
+                    <h3>Media</h3>
+                    <ul>
+                        <li>Video Editing</li>
+                        <li>Audio Editing</li>
+                        <li>Streaming Tools</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- project section -->
+
+
+    <!-- parallax image section -->
+
+    <script src="js/main.js"></script>
+
+
+
+
+</body>
+
+</html>
