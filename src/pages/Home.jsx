@@ -109,6 +109,9 @@ export default function Home({ onCase }) {
           <Cube face="01" />
           <SplitHeading text="Selected work" />
           <p className="sect-note">The things I am actually building right now.</p>
+          <Link className="sect-all" to="/work" data-magnetic>
+            View all <span aria-hidden="true">→</span>
+          </Link>
         </div>
         <div className="feat-grid">
           {featured().map((w) => (

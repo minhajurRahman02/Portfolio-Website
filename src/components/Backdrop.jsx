@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import Sky from '../lib/sky.js';
 import { onFrame } from '../lib/loop.js';
+import { createFireflies } from '../lib/fireflies.js';
 import { useApp } from '../context/AppState.jsx';
 import { backdrops } from '../data/interests.js';
 
@@ -41,19 +42,17 @@ const playSafe = (v) => {
 };
 
 export default function Backdrop() {
-  const { skyClear, clip, routeKey, setClear, features } = useApp();
+  const { skyClear, routeKey, setClear, features } = useApp();
 
   const glRef = useRef(null);
   const starRef = useRef(null);
+  const flyRef = useRef(null);
+  const flies = useRef(null);
   const layerRefs = useRef([]);
   const vidRefs = useRef([]);
-  const skyA = useRef(null);
-  const skyB = useRef(null);
 
   const routeRef = useRef(routeKey);
   routeRef.current = routeKey;
-  const clearRef = useRef(skyClear);
-  clearRef.current = skyClear;
   const stillRef = useRef(false);
   stillRef.current = features.nomotion;
 
@@ -84,7 +83,16 @@ export default function Backdrop() {
     };
   }, []);
 
-  /* ---------------- journey crossfade + loop-seam crossfade ---------------- */
+  /* ---------------- fireflies ---------------- */
+  useEffect(() => {
+    flies.current = createFireflies(flyRef.current);
+    const off = onFrame((t, dt) => flies.current.tick(t, dt));
+    return () => { off(); flies.current.destroy(); };
+  }, []);
+
+  useEffect(() => { flies.current?.set(skyClear); }, [skyClear]);
+
+  /* ---------------- journey crossfade ---------------- */
   useEffect(() => {
     const bgTick = (p) => {
       const n = backdrops.length;
@@ -124,56 +132,10 @@ export default function Backdrop() {
         document.body.classList.remove('daylight');
         wasJourney = false;
       }
-
-      /* cleared sky — two copies of one clip, crossfaded over the seam */
-      const a = skyA.current;
-      const b = skyB.current;
-      if (!clearRef.current || !a || !b) return;
-      const D = a.duration;
-      if (!D || !isFinite(D) || D < 2) {
-        a.style.opacity = '1';
-        b.style.opacity = '0';
-        return;
-      }
-      const X = Math.min(1.1, D * 0.14);
-      const w = (t) => (t < X ? t / X : t > D - X ? (D - t) / X : 1);
-      const wa = Math.max(0, w(a.currentTime));
-      const wb = Math.max(0, w(b.currentTime));
-      const s = wa + wb || 1;
-      a.style.opacity = (wa / s).toFixed(3);
-      b.style.opacity = (wb / s).toFixed(3);
     });
 
     return () => { off(); bgOff(); };
   }, []);
-
-  /* ---------------- start / stop the cleared-sky clip ---------------- */
-  useEffect(() => {
-    const a = skyA.current;
-    const b = skyB.current;
-    if (!a || !b) return;
-
-    if (!skyClear || !clip) {
-      a.style.opacity = '0';
-      b.style.opacity = '0';
-      const t = setTimeout(() => { a.pause(); b.pause(); }, 900);
-      return () => clearTimeout(t);
-    }
-
-    attach(a, clip);
-    attach(b, clip);
-    playSafe(a);
-    playSafe(b);
-
-    // offset the second copy by half the clip so the two never seam together
-    const offset = () => {
-      const D = a.duration;
-      if (D && isFinite(D) && D > 2) { try { b.currentTime = D / 2; } catch { /* seek refused */ } }
-    };
-    if (a.readyState >= 1) offset();
-    else a.addEventListener('loadedmetadata', offset, { once: true });
-    return () => a.removeEventListener('loadedmetadata', offset);
-  }, [skyClear, clip]);
 
   return (
     <>
@@ -199,9 +161,10 @@ export default function Backdrop() {
             </div>
           ))}
         </div>
-        <video className="skyvid" ref={skyA} muted loop playsInline preload="none" />
-        <video className="skyvid" ref={skyB} muted loop playsInline preload="none" />
       </div>
+
+      {/* the cleared sky: darkness with fireflies punching light through it */}
+      <canvas id="fireflies" ref={flyRef} aria-hidden="true" />
 
       <div id="grain" aria-hidden="true" />
       <div id="flashlight" aria-hidden="true" />

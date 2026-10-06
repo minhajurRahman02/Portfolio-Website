@@ -33,15 +33,43 @@ export function Cursor() {
       }
     };
 
+    /* A magnetic element moves toward the cursor, which moves its own hit box,
+       which changes what the cursor is over — so hit-testing cannot decide
+       when to let go. Each capture records the element's REST rect (measured
+       with the transform cleared) and the release test runs against that rect
+       inflated by a margin, in the frame loop. Nothing oscillates because the
+       geometry the test reads never moves. */
+    const RELEASE_PAD = 16;
+    let magnetRest = null;
+
+    const release = () => {
+      if (magnet) { magnet.style.transform = ''; magnet._mv = 0; }
+      magnet = null;
+      magnetRest = null;
+    };
+
+    const capture = (el) => {
+      if (el === magnet) return;
+      release();
+      if (!el) return;
+      const prev = el.style.transform;
+      el.style.transform = 'none';
+      const r = el.getBoundingClientRect();
+      el.style.transform = prev;
+      magnet = el;
+      magnetRest = { l: r.left, t: r.top, r: r.right, b: r.bottom, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+    };
+
     const HOT = 'a,button,[data-magnetic],.feat,.post,.wcard,.skill-card,.cs-panel';
+    let hot = false;
     const onOver = (e) => {
       if (!e.target.closest) return;
-      ring.current?.classList.toggle('on', !!e.target.closest(HOT));
-      magnet = e.target.closest('[data-magnetic]');
-    };
-    const onOut = (e) => {
-      const m = e.target.closest ? e.target.closest('[data-magnetic]') : null;
-      if (m && m._mv) { m.style.transform = ''; m._mv = 0; }
+      // only touch the class when the answer actually changes, or the ring
+      // restarts its transition on every pointerover event
+      const next = !!e.target.closest(HOT);
+      if (next !== hot) { hot = next; ring.current?.classList.toggle('on', next); }
+      const m = e.target.closest('[data-magnetic]');
+      if (m) capture(m);
     };
 
     /* pointer-tracked specular highlight on the glass skill cards */
@@ -58,21 +86,27 @@ export function Cursor() {
     window.addEventListener('pointermove', onMove, { passive: true });
     window.addEventListener('pointermove', onSheen, { passive: true });
     document.addEventListener('pointerover', onOver);
-    document.addEventListener('pointerout', onOut);
 
     const off = onFrame((t, dt) => {
       const k = approach(0.12, dt);
       rp.x = lerp(rp.x, cp.x, k);
       rp.y = lerp(rp.y, cp.y, k);
+
+      if (magnet && (!magnet.isConnected ||
+        cp.x < magnetRest.l - RELEASE_PAD || cp.x > magnetRest.r + RELEASE_PAD ||
+        cp.y < magnetRest.t - RELEASE_PAD || cp.y > magnetRest.b + RELEASE_PAD)) {
+        release();
+      }
+
       let tx = cp.x;
       let ty = cp.y;
-      if (magnet && magnet.isConnected) {
-        const r = magnet.getBoundingClientRect();
-        tx = r.left + r.width / 2;
-        ty = r.top + r.height / 2;
+      if (magnet) {
+        tx = magnetRest.cx;
+        ty = magnetRest.cy;
         magnet.style.transform = `translate(${(cp.x - tx) * 0.22}px,${(cp.y - ty) * 0.22}px)`;
         magnet._mv = 1;
       }
+
       if (dot.current) dot.current.style.transform = `translate(${cp.x}px,${cp.y}px)`;
       if (ring.current) {
         const m = magnet ? 0.6 : 0;
@@ -84,7 +118,7 @@ export function Cursor() {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointermove', onSheen);
       document.removeEventListener('pointerover', onOver);
-      document.removeEventListener('pointerout', onOut);
+      release();
       off();
     };
   }, []);
@@ -137,10 +171,20 @@ export function TopBar({ onMenu }) {
 }
 
 /* ============================== dock ==============================
-   macOS-style magnification, but only once the pointer is actually
-   inside the dock's own box — a wide radius made it twitch from far
-   away. The scale eases on a time basis so it glides rather than
-   snapping to the cursor. */
+   macOS-style magnification on a plain pill.
+
+   The one thing that matters: a magnified icon changes its own LAYOUT width
+   (--s drives width/height), so growing one icon shifts its neighbours
+   sideways. If the magnifier reads live bounding rects, scale feeds into
+   position and position feeds back into scale, and the row shakes — worst
+   exactly between two icons. So the distance field is measured from REST
+   centres, captured once with every scale forced to 1 and remeasured only on
+   resize. */
+const DOCK_MAX = 0.88;   // peak extra scale
+const DOCK_SIGMA = 84;   // falloff of the magnification, px
+const HEADROOM = 26;     // how far the icons rise above the pill, px
+const NEAR_MARGIN = 14;  // how much nearer a challenger must be to steal the highlight
+
 export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
   const inner = useRef(null);
   const { toggleTheme } = useApp();
@@ -149,22 +193,80 @@ export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
     const host = inner.current;
     if (!host) return;
     const items = Array.from(host.querySelectorAll('.dk'));
-    items.forEach((d) => { d._s = 1; d._t = 1; });
 
-    const magnify = (x, y) => {
-      const r = host.getBoundingClientRect();
-      const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-      items.forEach((d) => {
-        if (!inside) { d._t = 1; return; }
+    let rest = [];     // icon centre x, relative to the dock box, at rest
+    let near = -1;     // which icon currently owns the highlight
+    let box = { w: 0, h: 0, left: 0, top: 0, bottom: 0 };
+
+    const measure = () => {
+      // force rest scale so the geometry we cache is the undisturbed one
+      items.forEach((d) => { d.style.setProperty('--s', '1'); d._s = 1; d._t = 1; });
+      const hr = host.getBoundingClientRect();
+      box.w = hr.width;
+      box.h = hr.height;
+      rest = items.map((d) => {
         const b = d.getBoundingClientRect();
-        const dist = Math.abs(x - (b.left + b.width / 2));
-        d._t = 1 + 0.88 * Math.exp(-(dist * dist) / (2 * 84 * 84));
+        return b.left + b.width / 2 - hr.left;
       });
+      anchor();
     };
 
+    /* Only the SIZE is cached; the position is re-derived, because the dock
+       slides in on scroll without firing a resize. Both anchors are immune to
+       magnification: #dock is centred with translateX(-50%) so its centre is
+       always the viewport centre however wide the row grows, and the icons
+       are flex-end aligned so they rise off a fixed bottom edge. */
+    const anchor = () => {
+      if (!box.w) return;
+      box.bottom = host.getBoundingClientRect().bottom;
+      box.top = box.bottom - box.h;
+      box.left = window.innerWidth / 2 - box.w / 2;
+    };
+
+    const magnify = (x, y) => {
+      anchor();
+      // the rest box, with headroom above it for the risen icons
+      const inside =
+        x >= box.left && x <= box.left + box.w &&
+        y >= box.top - HEADROOM - 8 && y <= box.bottom;
+      const lx = x - box.left;
+
+      /* Which icon is "under" the cursor is decided here, by nearest rest
+         centre, not by :hover. There is a 5px gap between icons, and in it
+         :hover matches nothing — so the highlight and the tooltip blinked out
+         and back as the cursor crossed, which reads as the dock being unable
+         to decide what it is pointing at. Nearest-centre has no dead zone and,
+         because the centres never move, no feedback either. */
+      let best = Infinity;
+      let cand = -1;
+      items.forEach((d, i) => {
+        if (!inside) { d._t = 1; return; }
+        const dist = lx - rest[i];
+        d._t = 1 + DOCK_MAX * Math.exp(-(dist * dist) / (2 * DOCK_SIGMA * DOCK_SIGMA));
+        const ad = Math.abs(dist);
+        if (ad < best) { best = ad; cand = i; }
+      });
+
+      if (!inside) {
+        near = -1;
+      } else if (near !== cand) {
+        /* Hysteresis. Nearest-centre on its own has a knife edge exactly
+           halfway between two icons, where a hand resting with half a pixel
+           of tremor flips the selection every frame. A challenger has to be
+           nearer by NEAR_MARGIN before it takes over, so the midpoint becomes
+           a band the current pick simply holds. */
+        const held = near < 0 ? Infinity : Math.abs(lx - rest[near]);
+        if (best < held - NEAR_MARGIN) near = cand;
+      }
+      items.forEach((d, i) => d.classList.toggle('near', i === near));
+    };
+
+    measure();
     const onMove = (e) => magnify(e.clientX, e.clientY);
-    const onLeave = () => items.forEach((d) => { d._t = 1; });
+    const onResize = () => measure();
+    const onLeave = () => { near = -1; items.forEach((d) => { d._t = 1; d.classList.remove('near'); }); };
     window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('resize', onResize);
     host.addEventListener('pointerleave', onLeave);
 
     const off = onFrame((t, dt) => {
@@ -178,6 +280,7 @@ export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
 
     return () => {
       window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('resize', onResize);
       host.removeEventListener('pointerleave', onLeave);
       off();
     };
@@ -293,7 +396,20 @@ export function AssistMenu({ open, close, anchorRef }) {
       aria-hidden={!open}
       style={{ left: `${pos.left}px`, bottom: `${pos.bottom}px` }}
     >
-      <div className="assist-ring">
+      {/* The label is tracked on the ring, not on each button. Per-button
+          enter/leave made it blink every time the cursor crossed the gap
+          between two buttons; here it only clears when the ring itself is
+          left, and only changes when a different button is actually under
+          the cursor. */}
+      <div
+        className="assist-ring"
+        onPointerMove={(e) => {
+          const b = e.target.closest?.('.asb');
+          const next = b ? b.dataset.label : label;
+          if (next !== label) setLabel(next);
+        }}
+        onPointerLeave={() => setLabel('')}
+      >
         {FAN.map((f, i) => (
           <button
             className={`asb${active[f.fx] ? ' on' : ''}`}
@@ -305,8 +421,7 @@ export function AssistMenu({ open, close, anchorRef }) {
                 ? `translate(${spread[i].x}px,${spread[i].y}px) scale(1)`
                 : undefined,
             }}
-            onPointerEnter={() => setLabel(f.label)}
-            onPointerLeave={() => setLabel('')}
+            data-label={f.label}
             onClick={() => run(f.fx)}
           >
             <Ico name={f.icon} />

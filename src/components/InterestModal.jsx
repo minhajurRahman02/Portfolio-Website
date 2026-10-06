@@ -104,7 +104,9 @@ export default function InterestModal({ id, close }) {
           <h2>{d?.title}</h2>
           <p className="im-sub">{d?.sub}</p>
         </header>
-        <div className="im-body" ref={body}>
+        {/* data-lenis-prevent: Lenis captures the wheel globally and routes it
+            to window scroll, so without this the modal cannot be scrolled. */}
+        <div className="im-body" ref={body} data-lenis-prevent>
           {d?.page?.map((p) => <p key={p.slice(0, 24)}>{p}</p>)}
 
           {d?.list && (

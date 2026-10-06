@@ -35,7 +35,7 @@ export default function TerminalPane() {
           '  <span class="cm">theme</span>       toggle light/dark\n' +
           '  <span class="cm">sky</span>         clear the sky\n' +
           '  <span class="cm">flashlight</span>  dark-room mode\n' +
-          '  <span class="cm">alien</span>       ???\n' +
+          '  <span class="cm">kill</span>        drop whatever is on the channel\n' +
           '  <span class="cm">neofetch</span> · <span class="cm">sudo hire-me</span> · <span class="cm">clear</span> · <span class="cm">exit</span>'
       );
     });
@@ -158,7 +158,7 @@ export default function TerminalPane() {
       </div>
       <div className="term-body">
         <div className="term-main">
-          <div className="term-out" id="term-out" />
+          <div className="term-out" id="term-out" data-lenis-prevent />
           <div className="term-in">
             <span className="mono prompt">&gt;</span>
             <input
@@ -176,8 +176,8 @@ export default function TerminalPane() {
             <span className="radar-cap mono">RADAR</span>
           </div>
           <div className="scan-wrap">
-            <canvas id="alien-scan" />
-            <span className="radar-cap mono">3D SCAN</span>
+            <canvas id="signal-wave" />
+            <span className="radar-cap mono">CHANNEL</span>
           </div>
         </aside>
       </div>

@@ -1,35 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { SplitHeading } from '../components/primitives.jsx';
+import SocialBlocks from '../components/SocialBlocks.jsx';
+import SevenSegClock from '../components/SevenSegClock.jsx';
 import { useApp } from '../context/AppState.jsx';
 import Sky from '../lib/sky.js';
 import { profile } from '../data/site.js';
 
 const MAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-
-function Clock() {
-  const [t, setT] = useState('--:--:--');
-  useEffect(() => {
-    const tick = () => {
-      try {
-        setT(
-          new Intl.DateTimeFormat('en-GB', {
-            hour: '2-digit', minute: '2-digit', second: '2-digit',
-            hour12: false, timeZone: profile.timezone,
-          }).format(new Date())
-        );
-      } catch { setT(new Date().toTimeString().slice(0, 8)); }
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
-  return (
-    <div className="clock neu">
-      <span className="mono xs dim">Dhaka</span>
-      <strong className="mono">{t}</strong>
-    </div>
-  );
-}
 
 export default function Contact() {
   const { toast } = useApp();
@@ -139,29 +116,24 @@ export default function Contact() {
 
         <aside className="cside">
           <h3>Direct</h3>
-          <ul className="links">
-            <li>
-              <span className="mono xs dim">Email</span>
-              <button className="copy" onClick={copy} type="button">{profile.email}</button>
-            </li>
-            {profile.links.map((l) => (
-              <li key={l.label}>
-                <span className="mono xs dim">{l.label}</span>
-                {l.href
-                  ? <a href={l.href} target="_blank" rel="noreferrer noopener">{l.href.replace(/^https?:\/\//, '')}</a>
-                  : <span className="ph">{l.placeholder}</span>}
-              </li>
-            ))}
-          </ul>
-          {profile.links.some((l) => !l.href) && (
-            <p className="placeholder-note mono xs">Placeholders — send me the real links.</p>
-          )}
+          <p className="cside-note">
+            The form reaches me fastest. Everything else is below.
+          </p>
           {profile.resume
             ? <a className="btn btn-ghost" href={profile.resume} download>Download résumé</a>
             : <button className="btn btn-ghost" type="button" onClick={() => toast('Résumé PDF not supplied yet')}>Résumé</button>}
-          <Clock />
+          <SevenSegClock />
         </aside>
       </div>
+
+      {/* The blocks sit under the whole panel in one row — they are wide,
+          isometric and want horizontal space, which the sidebar never had. */}
+      <section className="social-row">
+        <SocialBlocks onCopyEmail={copy} />
+        {profile.links.some((l) => !l.href) && (
+          <p className="placeholder-note mono xs">Placeholders — send me the real links.</p>
+        )}
+      </section>
     </section>
   );
 }

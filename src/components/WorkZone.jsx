@@ -136,65 +136,95 @@ function Card({ item, onOpen }) {
   );
 }
 
-/* ====================== a zone: rail + see all ======================
+/* How many horizontal pixels the rail travels per pixel of vertical scroll.
+   Above 1 the rail outruns the page, which is what makes it feel quick. */
+const RAIL_SPEED = 1.35;
+
+/* ======================= a zone: the rail =======================
    Vertical scroll is translated into sideways travel while the zone is
-   pinned. The "See all" switch only exists once a zone holds more than
-   three items — below that the rail already shows everything and the
-   button would be a lie. */
+   pinned. The rail shows ZONE_LIMIT cards; past that it ends in a round
+   arrow that loads the rest into the same flex rather than switching to a
+   different layout.
+
+   The pinned track's height is measured from how far the rail actually
+   overflows, not fixed in CSS. A fixed 260vh meant three cards crawled
+   through 160vh of dead scroll, and every card added made it slower still. */
 export default function WorkZone({ zone, letter, label, note, children, onOpen }) {
   const items = byZone(zone);
   const track = useRef(null);
   const rail = useRef(null);
   const sticky = useRef(null);
   const [all, setAll] = useState(false);
-  const many = items.length > ZONE_LIMIT;
+
+  const shown = all ? items : items.slice(0, ZONE_LIMIT);
+  const more = items.length - ZONE_LIMIT;
 
   useEffect(() => {
-    if (all) return;
+    const measure = () => {
+      const tr = track.current;
+      const r = rail.current;
+      const st = sticky.current;
+      if (!tr || !r || !st) return 0;
+      if (window.innerWidth <= 760) { tr.style.height = ''; return 0; }
+      const over = Math.max(0, r.scrollWidth - st.clientWidth + 8);
+      tr.style.height = `${window.innerHeight + over / RAIL_SPEED}px`;
+      return over;
+    };
+
+    let over = measure();
+    const onResize = () => { over = measure(); };
+    window.addEventListener('resize', onResize);
+
+    // remeasure once the newly revealed cards have been laid out
+    const settle = setTimeout(() => { over = measure(); }, 60);
+
     const off = onFrame(() => {
       if (window.innerWidth <= 760) return;
       const tr = track.current;
       const r = rail.current;
-      const st = sticky.current;
-      if (!tr || !r || !st) return;
+      if (!tr || !r || over <= 0) return;
       const total = tr.offsetHeight - window.innerHeight;
       if (total <= 0) return;
       const p = clamp(-tr.getBoundingClientRect().top / total, 0, 1);
-      const max = Math.max(0, r.scrollWidth - st.clientWidth + 8);
-      r.style.transform = `translate3d(${-p * max}px,0,0)`;
+      r.style.transform = `translate3d(${-p * over}px,0,0)`;
     });
-    return off;
-  }, [all]);
+
+    return () => { off(); clearTimeout(settle); window.removeEventListener('resize', onResize); };
+  }, [all, items.length]);
 
   return (
-    <div className={`zone zone-${zone === 'research' ? 'research' : 'eng'}`} data-zone={zone === 'research' ? 'glass' : 'panel'}>
+    <div
+      className={`zone zone-${zone === 'research' ? 'research' : 'eng'}`}
+      data-zone={zone === 'research' ? 'glass' : 'panel'}
+    >
       {children}
       <div className="zone-label">
         <Cube face={letter} />
         <SplitHeading text={label} />
         {note && <p className="sect-note">{note}</p>}
-        {many && (
-          <button className="seeall" onClick={() => setAll((v) => !v)}>
-            {all ? 'Back to the rail →' : <>See all <span className="n">{items.length}</span> →</>}
-          </button>
-        )}
       </div>
 
-      {!all && (
-        <div className="htrack" ref={track}>
-          <div className="hsticky" ref={sticky}>
-            <div className="hrail" ref={rail}>
-              {items.map((it) => <Card item={it} key={it.id} onOpen={onOpen} />)}
-            </div>
+      <div className="htrack" ref={track}>
+        <div className="hsticky" ref={sticky}>
+          <div className="hrail" ref={rail}>
+            {shown.map((it) => <Card item={it} key={it.id} onOpen={onOpen} />)}
+            {!all && more > 0 && (
+              <button
+                className="rail-more"
+                onClick={() => setAll(true)}
+                aria-label={`Show ${more} more project${more > 1 ? 's' : ''}`}
+              >
+                <span className="rm-ring">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12h13M12 5l7 7-7 7" />
+                  </svg>
+                </span>
+                <span className="rm-label mono">{more} more</span>
+              </button>
+            )}
           </div>
         </div>
-      )}
-
-      {all && (
-        <div className="grid-all">
-          {items.map((it) => <Card item={it} key={it.id} onOpen={onOpen} />)}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

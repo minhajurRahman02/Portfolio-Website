@@ -15,10 +15,16 @@ export const profile = {
   timezone: 'Asia/Dhaka',
   // TODO(minhajur): real addresses
   email: 'your.email@example.com',
+  // Order here is the order the isometric blocks appear in on /contact.
+  // Drop an entry to remove its block; add one and give it an icon + tint in
+  // src/components/SocialBlocks.jsx.
   links: [
     { label: 'GitHub', href: '', placeholder: 'github.com/…' },
     { label: 'LinkedIn', href: '', placeholder: 'linkedin.com/in/…' },
     { label: 'Scholar', href: '', placeholder: 'scholar.google.com/…' },
+    { label: 'X', href: '', placeholder: 'x.com/…' },
+    { label: 'Instagram', href: '', placeholder: 'instagram.com/…' },
+    { label: 'Facebook', href: '', placeholder: 'facebook.com/…' },
   ],
   resume: '', // e.g. '/minhajur-rahman-cv.pdf'
 };

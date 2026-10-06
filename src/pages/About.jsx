@@ -1,12 +1,13 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Cube, Reveal, SplitHeading } from '../components/primitives.jsx';
 import PhotoStack from '../components/PhotoStack.jsx';
 import Carousel from '../components/Carousel.jsx';
-import { StudyBot } from '../components/Robot.jsx';
-import { about, education } from '../data/site.js';
+import { useApp } from '../context/AppState.jsx';
+import { about, education, profile } from '../data/site.js';
 
 export default function About() {
   const navigate = useNavigate();
+  const { toast } = useApp();
 
   return (
     <section className="page" data-page="about">
@@ -25,13 +26,29 @@ export default function About() {
           <p className="placeholder-note mono xs">
             Placeholder prose — send me this in your own words and I will drop it in.
           </p>
+          <Reveal className="about-cta">
+            <Link className="btn btn-solid" to="/contact" data-magnetic>Work with me</Link>
+            {profile.resume ? (
+              <a className="btn btn-ghost" href={profile.resume} download data-magnetic>
+                Résumé (PDF)
+              </a>
+            ) : (
+              <button
+                className="btn btn-ghost"
+                type="button"
+                data-magnetic
+                onClick={() => toast('Résumé PDF not supplied yet')}
+              >
+                Résumé (PDF)
+              </button>
+            )}
+          </Reveal>
         </div>
       </div>
 
       {/* Education and the contact controls are the two neumorphic zones;
           everything else on the site is glass. */}
       <section className="sect slab" data-zone="panel">
-        <StudyBot />
         <div className="sect-head">
           <Cube face="04" />
           <SplitHeading text="Education" />

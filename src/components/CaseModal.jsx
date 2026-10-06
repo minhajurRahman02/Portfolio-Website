@@ -29,7 +29,9 @@ export default function CaseModal({ id, close }) {
       aria-hidden={!item}
     >
       <div className="case-bd" onClick={close} />
-      <article className="case glass-card">
+      {/* data-lenis-prevent, or the smooth-scroll driver eats the wheel and
+          the panel never scrolls */}
+      <article className="case glass-card" data-lenis-prevent>
         <button className="case-x" ref={x} onClick={close} aria-label="Close">
           <Ico name="close" />
         </button>

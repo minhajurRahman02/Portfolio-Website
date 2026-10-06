@@ -11,11 +11,7 @@ export const backdrops = [
   'bg-06', // forest glade at noon
 ];
 
-/** Clips the cleared sky picks from, at random, outside /interests. */
-export const skySet = ['bg-01', 'bg-02', 'sky-03', 'sky-04', 'sky-05'];
-
-/** The Interests page has its own idle film. */
-export const idleClip = 'idle';
+/* The cleared sky no longer plays a clip — see src/lib/fireflies.js. */
 
 export const galleryShots = Array.from({ length: 10 }, (_, i) =>
   `/images/gal/gal-${String(i + 1).padStart(2, '0')}.jpg`

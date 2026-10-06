@@ -111,7 +111,7 @@ export default function OverlayMenu({ open, close }) {
 
         <div className="ov-side">
           <div className={`ov-prev${lit ? ' lit' : ''}`}>
-            <canvas ref={canvas} aria-hidden="true" />
+            <canvas id="ov-net" ref={canvas} aria-hidden="true" />
             <span className="ov-prev-label mono">{label}</span>
           </div>
           <div className="ov-meta">

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 
 import Backdrop from './components/Backdrop.jsx';
+import GlassFilter from './components/GlassFilter.jsx';
 import { BackToTop, Cursor, Dock, ScrollFlag, Toast, TopBar, AssistMenu } from './components/Chrome.jsx';
 import OverlayMenu from './components/OverlayMenu.jsx';
 import CaseModal from './components/CaseModal.jsx';
@@ -137,6 +138,7 @@ export default function App() {
   return (
     <>
       <Backdrop />
+      <GlassFilter />
       <Cursor />
       <ScrollFlag />
 

@@ -1,3 +1,13 @@
+/* ---------------------------------------------------------------
+   HOVER LIFTS ARE SCALES, NOT TRANSLATES.
+   A translate moves the element out from under the cursor. Near an edge —
+   which is exactly where the gap between two cards puts you — that un-hovers
+   it, which drops the transform, which puts the cursor back inside, which
+   re-hovers it. The element shakes at the boundary forever.
+   Scaling up about the centre can never move a boundary past an interior
+   point, so a hovered element can never escape its own cursor. The sense of
+   lift comes from the shadow instead.
+   --------------------------------------------------------------- */
 /* Tailwind base first, bespoke component CSS in the middle, utilities LAST
    so a utility class in JSX always beats a component rule here. */
 @tailwind base;
@@ -118,21 +128,23 @@ body.lightmode #grain{opacity:.22;mix-blend-mode:multiply}
   background:radial-gradient(circle 190px at var(--fx,50%) var(--fy,50%),transparent 0,rgba(3,3,10,.6) 55%,rgba(3,3,10,.98) 100%)}
 body.flash #flashlight{opacity:1}
 
-/* idle / manual: the backdrop video takes the screen and the page leaves */
 #vidstack{position:fixed;inset:0;z-index:-5;overflow:hidden;pointer-events:none}
-.skyvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;
-  transition:opacity .6s linear}
 #bgvids{position:absolute;inset:0;transition:opacity 1.4s ease}
-body.skyclear #bgvids{opacity:0}
 .bglayer{position:absolute;inset:0;opacity:0}
 .bglayer video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-/* a cleared sky also keeps a dark base under the clip */
-#vidstack::before{content:"";position:absolute;inset:0;background:#02030A;opacity:0;transition:opacity 1.2s}
-body.skyclear #vidstack::before{opacity:1}
-#app,#foot,#topbar,#dock,#totop{transition:filter 1.6s ease,opacity 1.6s ease}
-body.skyclear #app,body.skyclear #foot,body.skyclear #topbar,
-body.skyclear #dock,body.skyclear #totop{opacity:0;pointer-events:none}
-#clearhint{position:fixed;left:50%;bottom:44px;transform:translateX(-50%) translateY(10px);z-index:8100;
+
+/* idle / manual "clear the sky": the screen goes dark and fireflies drift
+   through it. The canvas holds both the darkness and the holes their light
+   punches in it, so the page is not hidden — it is only unlit. The dock stays
+   live, or there would be no way back. */
+#fireflies{position:fixed;inset:0;z-index:7950;pointer-events:none;
+  opacity:0;transition:opacity .5s linear}
+body.skyclear #topbar,body.skyclear #totop{opacity:0;pointer-events:none}
+#topbar,#totop{transition:opacity 1.2s ease}
+/* lift the dock above the veil so the off-switch stays lit and reachable */
+body.skyclear #dock{z-index:7960}
+/* sits above the dock, which stays live during a cleared sky */
+#clearhint{position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(10px);z-index:8100;
   opacity:0;transition:opacity .8s ease 1s,transform .8s ease 1s;cursor:pointer;
   padding:10px 20px;border-radius:999px;color:#DCE9FF;
   background:rgba(10,14,30,.5);border:1px solid rgba(220,233,255,.28);backdrop-filter:blur(10px);
@@ -172,17 +184,100 @@ body.has-cursor #cur-dot,body.has-cursor #cur-ring{opacity:1}
 body.loading{overflow:hidden}
 body.locked{overflow:hidden}
 
-/* ---------- glass system ---------- */
-.glass-card{
-  position:relative;
-  background:var(--glass);
-  border:1px solid var(--glass-brd);
-  border-radius:22px;
-  backdrop-filter:var(--glass-blur);
-  -webkit-backdrop-filter:var(--glass-blur);
-  box-shadow:var(--card-sh),inset 0 1px 0 var(--glass-hi),inset 0 -24px 48px -36px rgba(255,255,255,.22);
+/* ================= liquid glass =================
+   The optics live in src/components/GlassFilter.jsx: an SVG displacement map
+   used as a backdrop-filter, which BENDS the background at the rim instead of
+   only blurring it. That is the part CSS alone cannot do.
+
+   What stays in CSS is the shader's second half — its `lighting` term, which
+   brightens the rim where the normal faces the light and adds a softer return
+   along the opposite edge. Here that is a pair of inset highlights plus a
+   hairline dark rim for the glass edge itself.
+
+   --lg-filter is the only thing elements override; it selects which of the
+   three aspect variants to refract through. */
+:root{
+  --lg-filter:url(#lg-card);
+  --lg-blur:blur(3px) saturate(1.35);
+  --lens-hi:rgba(255,255,255,.5);
+  --lens-hi-2:rgba(255,255,255,.22);
+  --lens-rim:rgba(0,0,0,.5);
+  --lens-tint:rgba(255,255,255,.045);
 }
-body.lightmode .glass-card{box-shadow:var(--card-sh),inset 0 1px 0 rgba(255,255,255,.95)}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --lens-hi:rgba(255,255,255,.95);
+    --lens-hi-2:rgba(255,255,255,.55);
+    --lens-rim:rgba(40,36,80,.2);
+    --lens-tint:rgba(255,255,255,.4);
+  }
+}
+:root[data-theme="light"]{
+  --lens-hi:rgba(255,255,255,.95);
+  --lens-hi-2:rgba(255,255,255,.55);
+  --lens-rim:rgba(40,36,80,.2);
+  --lens-tint:rgba(255,255,255,.4);
+}
+
+.lg-defs{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
+
+.lg,
+.glass-card,
+.stats,
+.slab,
+.neu,.neu-in,.neu-btn,
+.ov-prev,
+.rm-ring,
+.asb,
+.icon-btn,
+.dock-in,
+.tv-cover,
+.tv-grid figure{
+  position:relative;
+  background:var(--lens-tint);
+  border:1px solid var(--glass-brd);
+  backdrop-filter:var(--lg-blur) var(--lg-filter);
+  -webkit-backdrop-filter:var(--lg-blur) var(--lg-filter);
+  box-shadow:
+    inset 1px 1px 0 -0.5px var(--lens-hi),
+    inset -1px -1px 0 -0.5px var(--lens-hi-2),
+    inset 0 0 1px var(--lens-rim),
+    var(--card-sh);
+}
+.glass-card{border-radius:22px}
+
+/* aspect variants — a wide card and a tall one need different maps or the
+   refracted band comes out lopsided */
+.stats,.slab,.post,.post-row,.dock-in,.neu,.neu-in,.neu-btn,
+.tv-cover,.icon-btn,.rm-ring,.asb{--lg-filter:url(#lg-wide)}
+.sc-face,.cs-panel{--lg-filter:url(#lg-tall)}
+
+/* Firefox has no SVG-filter backdrop-filter. Without the refraction the
+   bevel alone looks flat, so that case gets a heavier rim to compensate. */
+@supports not (backdrop-filter: url(#lg-card)){
+  .lg,.glass-card,.stats,.slab,.neu,.neu-in,.neu-btn,.ov-prev,
+  .rm-ring,.asb,.icon-btn,.dock-in,.tv-cover,.tv-grid figure{
+    backdrop-filter:blur(18px) saturate(1.4);
+    -webkit-backdrop-filter:blur(18px) saturate(1.4);
+    box-shadow:
+      inset 2px -2px 1px -1px var(--lens-hi),
+      inset -2px 2px 1px -1px var(--lens-hi),
+      inset 0 0 2px var(--lens-rim),
+      var(--card-sh);
+  }
+}
+
+/* Tint is per-context. The refraction is identical everywhere; what changes
+   is how much of the backdrop is allowed through, and that has to depend on
+   what is behind the panel. Over the dark procedural sky a few percent is
+   plenty. Over the Interests video, or under eight overlapping deck faces,
+   the same value leaves the text illegible. */
+.jsec,.im-panel,.case{--lens-tint:rgba(9,9,24,.84)}
+body.lightmode .jsec,body.lightmode .im-panel,body.lightmode .case{--lens-tint:rgba(248,248,255,.76)}
+body.daylight .jsec{--lens-tint:rgba(252,252,255,.8)}
+
+/* Text sits on the lens, so it needs its own stacking context. */
+.glass-card>*,.stats>*,.neu>*{position:relative;z-index:1}
 
 /* ---------- top bar ---------- */
 #topbar{position:fixed;top:0;left:0;right:0;z-index:700;display:flex;align-items:center;justify-content:space-between;
@@ -210,7 +305,7 @@ body.lightmode .th-rays{opacity:1;transform:none}
 /* menu icon: 3x3 dot grid that rotates and collapses */
 .mn-ico circle{fill:currentColor;transition:transform .45s cubic-bezier(.5,1.5,.5,1),opacity .35s}
 .mn-ico{transition:transform .5s cubic-bezier(.5,1.5,.5,1)}
-.icon-btn:hover .mn-ico,.dk:hover .mn-ico{transform:rotate(45deg)}
+.icon-btn:hover .mn-ico,.dk.near .mn-ico{transform:rotate(45deg)}
 body.menuopen .mn-ico{transform:rotate(135deg) scale(.86)}
 
 /* ---------- dock (macOS magnification) ---------- */
@@ -226,13 +321,13 @@ body.scrolled #dock,body.always-dock #dock{transform:translate(-50%,0)}
 .dk svg{width:calc(20px*var(--s));height:calc(20px*var(--s));fill:none;stroke:currentColor;
   stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .dk .mn-ico circle,.dk .th-ico circle{fill:currentColor;stroke:none}
-.dk:hover{background:rgba(145,104,242,.2)}
+.dk.near{background:rgba(145,104,242,.2)}
 .dk.active{color:var(--accent)}
 .dk.active::after{content:"";position:absolute;bottom:-4px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--accent)}
 .dk::before{content:attr(data-tip);position:absolute;bottom:112%;left:50%;transform:translateX(-50%) translateY(5px);
   font:500 11px var(--fm);white-space:nowrap;padding:4px 9px;border-radius:8px;background:var(--slab);
   border:1px solid var(--glass-brd);opacity:0;pointer-events:none;transition:.22s;color:var(--ink)}
-.dk:hover::before{opacity:1;transform:translateX(-50%) translateY(0)}
+.dk.near::before{opacity:1;transform:translateX(-50%) translateY(0)}
 .dock-sep{width:1px;height:24px;background:var(--line);margin:0 4px 10px;flex:0 0 auto}
 #feat-dock.on{color:var(--accent-2)}
 
@@ -245,6 +340,8 @@ body.scrolled #dock,body.always-dock #dock{transform:translate(-50%,0)}
   backdrop-filter:var(--glass-blur);box-shadow:var(--card-sh);color:var(--ink);
   opacity:0;transform:translate(0,22px) scale(.4);
   transition:transform .45s cubic-bezier(.34,1.5,.5,1),opacity .3s}
+/* no dead gap between fan buttons, or the hover state blinks across it */
+.asb::after{content:"";position:absolute;inset:-9px;border-radius:50%}
 .asb svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 #assist.open{pointer-events:auto}
 /* the fan-out offsets are set inline by JS so no trig in CSS is required */
@@ -294,7 +391,9 @@ body.lightmode #overlay{background:rgba(238,240,248,.88)}
   /* % positions resolve against (box − image), so with a 190%-tall mask the
      empty state is a NEGATIVE percentage and full is positive */
   -webkit-mask-position:0% -72%;mask-position:0% -72%;
-  transition:-webkit-mask-position .8s cubic-bezier(.33,.9,.3,1),mask-position .8s cubic-bezier(.33,.9,.3,1)}
+  /* --fill-ms is the only knob here: raise it and the water climbs slower */
+  --fill-ms:1.45s;
+  transition:-webkit-mask-position var(--fill-ms) cubic-bezier(.33,.9,.3,1),mask-position var(--fill-ms) cubic-bezier(.33,.9,.3,1)}
 .ov-links a:hover .wtxt::after,.ov-links a:focus-visible .wtxt::after{
   -webkit-mask-position:-200% 52%;mask-position:-200% 52%}
 
@@ -332,8 +431,18 @@ kbd{font-family:var(--fm);border:1px solid var(--glass-brd);border-radius:5px;pa
 .sect-head{display:grid;gap:12px;margin-bottom:clamp(28px,5vw,52px);max-width:760px}
 .sect-head h2{font-size:clamp(30px,5.2vw,58px)}
 .sect-note{color:var(--dim);font-size:14.5px}
-.slab{background:var(--slab);border:1px solid var(--line);border-radius:28px;
-  padding:clamp(26px,5vw,56px);box-shadow:inset 0 1px 0 var(--neu-hi)}
+/* "View all" beside a section heading — a link, not a button, because it
+   navigates rather than acting on the section */
+.sect-all{justify-self:start;display:inline-flex;align-items:center;gap:8px;
+  font:600 13.5px var(--fb);color:var(--accent);text-decoration:none;
+  padding:6px 2px;position:relative}
+.sect-all span{transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.sect-all::after{content:"";position:absolute;left:2px;right:2px;bottom:2px;height:1px;
+  background:currentColor;transform:scaleX(0);transform-origin:left;
+  transition:transform .4s cubic-bezier(.22,1,.36,1)}
+.sect-all:hover::after,.sect-all:focus-visible::after{transform:scaleX(1)}
+.sect-all:hover span{transform:translateX(5px)}
+.slab{border-radius:28px;padding:clamp(26px,5vw,56px)}
 
 .cube{display:inline-grid;place-items:center;width:46px;height:46px;perspective:260px;font:500 13px var(--fm);color:var(--accent)}
 .cube i{font-style:normal;display:grid;place-items:center;width:100%;height:100%;border:1px solid var(--glass-brd);
@@ -363,7 +472,7 @@ body:not(.lightmode) .chip-live{color:#3DDCA0}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;border-radius:999px;font-weight:600;
   font-size:14.5px;cursor:pointer;border:1px solid transparent;transition:.3s}
 .btn-solid{background:linear-gradient(120deg,var(--indigo),var(--violet));color:#fff;box-shadow:var(--glow)}
-.btn-solid:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.btn-solid:hover{filter:brightness(1.1);transform:scale(1.045)}
 .btn-ghost{border-color:var(--glass-brd);background:var(--glass);backdrop-filter:var(--glass-blur)}
 .btn-ghost:hover{border-color:var(--violet);background:var(--glass-2)}
 .arrow{font-size:19px;color:var(--accent);transition:transform .3s}
@@ -395,6 +504,7 @@ body.lightmode .n-ext{background:linear-gradient(104deg,#241F4A 4%,var(--accent)
 @keyframes blink{50%{opacity:0}}
 .hero-sub{color:var(--dim);max-width:54ch;font-size:15.5px}
 .hero-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+.about-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
 
 .hero-portrait{position:relative;aspect-ratio:1;max-width:330px;width:100%;justify-self:end;display:grid;place-items:center}
 .pf-ring{position:absolute;inset:-10px;border-radius:50%;
@@ -419,9 +529,9 @@ body.lightmode .n-ext{background:linear-gradient(104deg,#241F4A 4%,var(--accent)
 
 /* ---------- featured ---------- */
 .feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-.feat{padding:26px;display:grid;gap:12px;align-content:start;cursor:pointer;min-width:0;
+.feat{transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s,border-color .35s;padding:26px;display:grid;gap:12px;align-content:start;cursor:pointer;min-width:0;
   transition:transform .45s cubic-bezier(.22,1,.36,1),border-color .35s,box-shadow .45s}
-.feat:hover{transform:translateY(-6px);border-color:var(--violet);box-shadow:var(--card-sh),var(--glow)}
+.feat:hover{transform:scale(1.022);border-color:var(--violet);box-shadow:0 32px 70px rgba(0,0,0,.6),var(--glow)}
 .feat-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .feat h3{font-size:25px} .feat p{font-size:14.5px;color:var(--dim)}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
@@ -429,7 +539,7 @@ body.lightmode .n-ext{background:linear-gradient(104deg,#241F4A 4%,var(--accent)
   border:1px solid rgba(145,104,242,.32);color:var(--ink)}
 body.lightmode .tags span{background:rgba(109,40,217,.1);border-color:rgba(109,40,217,.25)}
 .post-row{display:flex;align-items:center;gap:18px;padding:22px 26px;transition:.35s}
-.post-row:hover{border-color:var(--violet);transform:translateX(5px)}
+.post-row:hover{border-color:var(--violet);transform:scale(1.012)}
 .post-row h3{flex:1;font-size:19px;min-width:0}
 
 /* ============ SKILLS DECK — curved glass ============ */
@@ -442,16 +552,21 @@ body.lightmode .tags span{background:rgba(109,40,217,.1);border-color:rgba(109,4
   display:flex;flex-direction:column;justify-content:space-between;
   backface-visibility:hidden;-webkit-backface-visibility:hidden;
   border:1px solid rgba(160,130,255,.4);
-  background:linear-gradient(158deg,rgba(28,24,62,.96),rgba(12,11,30,.985));
+  /* Eight of these overlap by design. They refract like every other panel,
+     but carry more tint than a standalone card so the text underneath the
+     stack stays readable. */
+  background:rgba(14,12,34,.93);
+  backdrop-filter:var(--lg-blur) var(--lg-filter);
+  -webkit-backdrop-filter:var(--lg-blur) var(--lg-filter);
   box-shadow:0 18px 44px rgba(0,0,0,.6),
-             inset 0 1px 0 rgba(255,255,255,.34),
-             inset 0 -40px 60px -50px rgba(255,255,255,.4),
-             inset 2px 0 14px -10px rgba(255,255,255,.5),
-             inset -2px 0 14px -10px rgba(255,255,255,.3)}
-body.lightmode .sc-face{background:linear-gradient(158deg,#FFFFFF,#E4E0F4);border-color:rgba(109,40,217,.26);
-  box-shadow:0 18px 38px rgba(80,70,130,.2),inset 0 1px 0 #fff,
-             inset 0 -40px 60px -50px rgba(255,255,255,.9)}
-/* curved-glass specular: a pointer glare + a fixed top highlight arc */
+             inset 1px 1px 0 -0.5px var(--lens-hi),
+             inset -1px -1px 0 -0.5px var(--lens-hi-2),
+             inset 0 0 1px var(--lens-rim)}
+body.lightmode .sc-face{border-color:rgba(109,40,217,.26);background:rgba(252,251,255,.94);
+  box-shadow:0 18px 38px rgba(80,70,130,.2),
+             inset 1px 1px 0 -0.5px var(--lens-hi),
+             inset -1px -1px 0 -0.5px var(--lens-hi-2),
+             inset 0 0 1px var(--lens-rim)}
 .sheen{position:absolute;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;z-index:2}
 .sheen::before{content:"";position:absolute;inset:-35%;opacity:.34;transition:opacity .45s;
   background:radial-gradient(40% 30% at var(--mx,50%) var(--my,26%),
@@ -490,12 +605,26 @@ body.lightmode .sc-back{background:linear-gradient(142deg,rgba(109,40,217,.16),r
 .seeall{margin-top:4px;padding:9px 18px;border-radius:999px;cursor:pointer;font:600 13px var(--fb);
   background:var(--glass);border:1px solid var(--glass-brd);backdrop-filter:var(--glass-blur);transition:.3s}
 .seeall:hover{border-color:var(--accent);color:var(--accent)}
-.htrack{height:260vh;position:relative}
+/* height is written from JS, measured from how far the rail overflows */
+.htrack{height:160vh;position:relative}
+/* the round arrow that ends the rail and loads the rest of the zone */
+.rail-more{flex:0 0 auto;align-self:center;display:grid;gap:12px;justify-items:center;
+  background:none;border:0;cursor:pointer;padding:0 28px 0 10px;color:var(--dim)}
+.rm-ring{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;
+  border:1px solid var(--glass-brd);background:var(--glass);backdrop-filter:var(--glass-blur);
+  transition:transform .4s cubic-bezier(.22,1,.36,1),border-color .35s,box-shadow .45s}
+.rail-more svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .4s cubic-bezier(.22,1,.36,1)}
+.rail-more:hover{color:var(--accent)}
+.rail-more:hover .rm-ring,.rail-more:focus-visible .rm-ring{
+  transform:scale(1.08);border-color:var(--accent);box-shadow:var(--glow)}
+.rail-more:hover svg{transform:translateX(3px)}
+.rm-label{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase}
 .hsticky{position:sticky;top:0;height:100vh;display:flex;align-items:center;overflow:hidden}
 .hrail{display:flex;gap:22px;padding-inline:4px;will-change:transform}
-.wcard{flex:0 0 min(420px,78vw);padding:28px;display:grid;gap:14px;align-content:start;cursor:pointer;
+.wcard{transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s,border-color .35s;flex:0 0 min(420px,78vw);padding:28px;display:grid;gap:14px;align-content:start;cursor:pointer;
   transition:transform .4s cubic-bezier(.22,1,.36,1),border-color .35s,box-shadow .4s}
-.wcard:hover{transform:translateY(-7px);border-color:var(--violet);box-shadow:var(--card-sh),var(--glow)}
+.wcard:hover{transform:scale(1.022);border-color:var(--violet);box-shadow:0 34px 74px rgba(0,0,0,.6),var(--glow)}
 .w-num{font-size:11px;color:var(--accent);letter-spacing:.2em}
 .wcard h3{font-size:clamp(25px,3.3vw,35px)}
 .w-sub{color:var(--dim);font-size:14.5px}
@@ -505,9 +634,19 @@ body.lightmode .sc-back{background:linear-gradient(142deg,rgba(109,40,217,.16),r
 .w-facts dd{margin:0;font-size:13.5px;line-height:1.5}
 .w-open{font-size:11px;color:var(--violet)}
 .grid-all{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:8px}
-.neu{background:var(--slab-2);border:1px solid transparent;border-radius:22px;
-  box-shadow:7px 7px 18px var(--neu-lo),-7px -7px 18px var(--neu-hi)}
-.neu:hover{box-shadow:10px 10px 24px var(--neu-lo),-10px -10px 24px var(--neu-hi)}
+/* The education timeline and the contact controls were the two neumorphic
+   zones; they are lenses now like everything else. The slab background on
+   the section stays, so the zones still read as separate places. */
+.neu{border-radius:22px;transition:box-shadow .3s,transform .3s}
+.neu:hover{transform:scale(1.016);
+  box-shadow:
+    inset 2px -2px 1px -1px var(--lens-hi),
+    inset -2px 2px 1px -1px var(--lens-hi),
+    inset 9px -9px 2px -8px var(--lens-hi-2),
+    inset -9px 9px 2px -8px var(--lens-hi-2),
+    inset 0 0 2px var(--lens-rim),
+    inset 0 0 14px -8px var(--lens-rim),
+    var(--card-sh),var(--glow)}
 
 /* ---------- robots ---------- */
 .bot{position:absolute;top:-26px;right:clamp(-6px,1vw,18px);width:clamp(96px,11vw,148px);z-index:3;pointer-events:none}
@@ -574,7 +713,7 @@ body.lightmode .bpage{fill:#FFFDF6}
   transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s}
 .edu::before{content:"";position:absolute;left:-26px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;
   background:var(--accent);box-shadow:0 0 0 4px var(--slab),0 0 14px var(--accent)}
-.edu:hover{transform:translateX(5px)}
+.edu:hover{transform:scale(1.016)}
 .edu-l h3{font-size:18px;margin-bottom:5px}
 .edu-l p{font-size:13.5px;color:var(--dim)}
 .edu-l strong{font-size:13px;color:var(--accent)}
@@ -590,12 +729,18 @@ body.lightmode .bpage{fill:#FFFDF6}
   cursor:grab;touch-action:pan-y;margin-bottom:44px}
 .carousel:active{cursor:grabbing}
 .cs-panel{position:absolute;inset:0;padding:28px;border-radius:24px;display:grid;align-content:center;gap:10px;
-  background:linear-gradient(158deg,rgba(28,24,62,.98),rgba(13,11,32,.99));
+  background:rgba(16,14,38,.6);
+  backdrop-filter:var(--lg-blur) var(--lg-filter);
+  -webkit-backdrop-filter:var(--lg-blur) var(--lg-filter);
   border:1px solid rgba(160,130,255,.4);backface-visibility:hidden;-webkit-backface-visibility:hidden;
   transform-style:preserve-3d;transition:opacity .4s,filter .4s,box-shadow .4s;cursor:pointer;
-  box-shadow:0 34px 54px -22px rgba(0,0,0,.85),0 0 44px rgba(145,104,242,.34),inset 0 1px 0 rgba(255,255,255,.3)}
-body.lightmode .cs-panel{background:linear-gradient(158deg,#FFFFFF,#E8E4F6);border-color:rgba(109,40,217,.26);
-  box-shadow:0 34px 50px -24px rgba(80,66,140,.42),0 0 36px rgba(109,40,217,.2),inset 0 1px 0 #fff}
+  box-shadow:0 34px 54px -22px rgba(0,0,0,.85),0 0 44px rgba(145,104,242,.34),
+             inset 1px 1px 0 -0.5px var(--lens-hi),
+             inset 0 0 1px var(--lens-rim)}
+body.lightmode .cs-panel{border-color:rgba(109,40,217,.26);background:rgba(255,255,255,.6);
+  box-shadow:0 34px 50px -24px rgba(80,66,140,.42),0 0 36px rgba(109,40,217,.2),
+             inset 1px 1px 0 -0.5px var(--lens-hi),
+             inset 0 0 1px var(--lens-rim)}
 .cs-panel:hover{box-shadow:0 34px 54px -22px rgba(0,0,0,.85),0 0 60px rgba(47,218,240,.5),inset 0 1px 0 rgba(255,255,255,.4)}
 .cs-ico{font-size:28px;color:var(--accent)}
 .cs-panel h3{font-size:22px} .cs-panel p{font-size:13.5px;color:var(--dim)}
@@ -609,29 +754,194 @@ body.lightmode .cs-panel{background:linear-gradient(158deg,#FFFFFF,#E8E4F6);bord
 
 /* ---------- blog ---------- */
 .posts{display:grid;gap:16px}
-.post{padding:28px;display:grid;gap:11px;cursor:pointer;transition:.4s}
-.post:hover{border-color:var(--violet);transform:translateY(-5px);box-shadow:var(--card-sh),var(--glow)}
+.post{transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s,border-color .35s;padding:28px;display:grid;gap:11px;cursor:pointer;transition:.4s}
+.post:hover{border-color:var(--violet);transform:scale(1.018);box-shadow:0 30px 66px rgba(0,0,0,.58),var(--glow)}
 .post-meta{display:flex;align-items:center;gap:10px}
 .post h2{font-size:clamp(21px,3vw,30px)}
 .post p{color:var(--dim);font-size:14.5px;max-width:70ch}
 
 /* ---------- contact ---------- */
 .contact-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:clamp(24px,4vw,48px)}
-.cform{display:grid;gap:16px;min-width:0}
+/* align-content:start, or the rows stretch to fill the grid's height — which
+   is set by whichever column is taller — and every input grows with it. */
+.cform{display:grid;gap:16px;min-width:0;align-content:start}
+.fld input,.fld textarea{align-self:start}
 .fld{display:grid;gap:7px}
 .fld label{font:500 11px var(--fm);letter-spacing:.15em;text-transform:uppercase;color:var(--dim)}
-.neu-in{width:100%;padding:14px 16px;border-radius:14px;border:1px solid transparent;background:var(--slab-2);
-  box-shadow:inset 5px 5px 11px var(--neu-lo),inset -5px -5px 11px var(--neu-hi);
+.neu-in{width:100%;padding:14px 16px;border-radius:14px;color:inherit;font:inherit;
   transition:box-shadow .3s,border-color .3s;resize:vertical}
 .neu-in:focus{outline:none;border-color:var(--accent);
-  box-shadow:inset 5px 5px 11px var(--neu-lo),inset -5px -5px 11px var(--neu-hi),0 0 0 3px rgba(47,218,240,.2)}
+  box-shadow:
+    inset 2px -2px 1px -1px var(--lens-hi),
+    inset -2px 2px 1px -1px var(--lens-hi),
+    inset 0 0 2px var(--lens-rim),
+    var(--card-sh),0 0 0 3px rgba(47,218,240,.22)}
 .neu-in.bad{border-color:#E0556B}
 .hp{position:absolute;left:-9999px;opacity:0;height:0;width:0}
-.neu-btn{padding:15px 26px;border-radius:14px;border:1px solid transparent;background:var(--slab-2);cursor:pointer;
-  font-weight:700;color:var(--accent);justify-self:start;
-  box-shadow:7px 7px 16px var(--neu-lo),-7px -7px 16px var(--neu-hi);transition:.2s}
-.neu-btn:hover{box-shadow:9px 9px 20px var(--neu-lo),-9px -9px 20px var(--neu-hi)}
-.neu-btn:active{box-shadow:inset 6px 6px 13px var(--neu-lo),inset -6px -6px 13px var(--neu-hi);transform:translateY(1px)}
+.neu-btn{padding:15px 26px;border-radius:14px;cursor:pointer;
+  font-weight:700;color:var(--accent);justify-self:start;transition:.25s}
+.neu-btn:hover{transform:scale(1.04);
+  box-shadow:
+    inset 2px -2px 1px -1px var(--lens-hi),
+    inset -2px 2px 1px -1px var(--lens-hi),
+    inset 9px -9px 2px -8px var(--lens-hi-2),
+    inset -9px 9px 2px -8px var(--lens-hi-2),
+    inset 0 0 2px var(--lens-rim),
+    var(--card-sh),var(--glow)}
+.neu-btn:active{transform:scale(.97)}
+.neu-btn[disabled]{opacity:.55;cursor:default;transform:none}
+/* ============ isometric social blocks ============
+   rotate(-30deg) skew(25deg) maps a rectangle onto the isometric top face.
+   ::before is the left wall, ::after the floor; both are plain skewed
+   rectangles pinned to that face's edges, so the solid reads correctly from
+   any size without a single magic number. */
+/* The transform turns a 132x50 tile into a ~159x121 footprint, so each cell
+   has to reserve that space or the blocks collide. The anchor is centred in
+   its cell and rotates about its own middle, which keeps the footprint
+   centred too. */
+.social-row{margin-top:clamp(28px,4vw,46px)}
+.iso-blocks{display:flex;flex-wrap:nowrap;gap:4px;list-style:none;margin:0;padding:0;
+  justify-content:space-between}
+/* Seven cells at 164px need ~1148px of content width, which the page only has
+   at its full 1280 max. Below that it becomes a swipeable rail rather than
+   overflowing the viewport. */
+@media (max-width:1240px){
+  .iso-blocks{overflow-x:auto;scroll-snap-type:x proximity;
+    padding-bottom:6px;justify-content:flex-start;gap:0}
+  .iso-blocks li{scroll-snap-align:center}
+}
+.iso-blocks li{--tint:var(--violet);list-style:none;position:relative;height:126px;flex:0 0 164px}
+.iso-blocks a{position:absolute;left:50%;top:50%;width:132px;height:50px;margin:-25px 0 0 -66px;
+  text-decoration:none;
+  transform:rotate(-30deg) skew(25deg);
+  transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s,background-color .45s;
+  background-color:var(--glass-2);
+  background-image:linear-gradient(135deg,var(--lens-sweep) 0%,transparent 22%,
+    transparent 78%,var(--lens-sweep) 100%);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-brd);
+  box-shadow:-14px 14px 20px rgba(0,0,0,.45),
+    inset 2px -2px 1px -1px var(--lens-hi),
+    inset -2px 2px 1px -1px var(--lens-hi),
+    inset 0 0 2px var(--lens-rim)}
+body.lightmode .iso-blocks a{box-shadow:-14px 14px 20px rgba(70,62,120,.22),
+  inset 2px -2px 1px -1px var(--lens-hi),inset -2px 2px 1px -1px var(--lens-hi),
+  inset 0 0 2px var(--lens-rim)}
+/* left wall */
+.iso-blocks a::before{content:"";position:absolute;top:7px;left:-14px;width:14px;height:100%;
+  background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(0,0,0,.3));
+  transform:skewY(-45deg);transition:background .45s}
+/* floor */
+.iso-blocks a::after{content:"";position:absolute;bottom:-14px;left:-7px;width:100%;height:14px;
+  background:linear-gradient(90deg,rgba(0,0,0,.38),rgba(255,255,255,.08));
+  transform:skewX(-45deg);transition:background .45s}
+.iso-face{position:relative;z-index:2;display:flex;align-items:center;gap:9px;height:100%;padding:0 12px}
+.iso-blocks svg{width:21px;height:21px;flex:0 0 auto;fill:none;stroke:var(--ink);
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:stroke .45s,fill .45s,filter .45s}
+.iso-blocks svg.solid{fill:var(--ink);stroke:none}
+.iso-txt strong{font:700 12.5px var(--fb);letter-spacing:.03em;color:var(--ink);
+  white-space:nowrap;transition:color .45s}
+.iso-txt em{display:none}
+
+.iso-blocks li:hover a,.iso-blocks a:focus-visible{
+  transform:rotate(-30deg) skew(25deg) translate(13px,-10px);
+  background-color:color-mix(in srgb,var(--tint) 34%,var(--glass-2));
+  box-shadow:-30px 30px 38px rgba(0,0,0,.5),0 0 30px color-mix(in srgb,var(--tint) 50%,transparent),
+    inset 2px -2px 1px -1px var(--lens-hi),inset -2px 2px 1px -1px var(--lens-hi),
+    inset 0 0 2px var(--lens-rim)}
+.iso-blocks li:hover a::before{background:linear-gradient(180deg,
+  color-mix(in srgb,var(--tint) 60%,transparent),rgba(0,0,0,.32))}
+.iso-blocks li:hover a::after{background:linear-gradient(90deg,rgba(0,0,0,.42),
+  color-mix(in srgb,var(--tint) 50%,transparent))}
+/* the icon carries its own light */
+.iso-blocks li:hover a svg{stroke:#fff;filter:drop-shadow(0 0 6px var(--tint)) drop-shadow(0 0 13px var(--tint))}
+.iso-blocks li:hover a svg.solid{fill:#fff;stroke:none}
+.iso-blocks li:hover a .iso-txt strong{color:#fff;text-shadow:0 0 10px color-mix(in srgb,var(--tint) 70%,transparent)}
+.iso-blocks a.pending{cursor:default;opacity:.75}
+
+/* ============ seven-segment clock ============ */
+/* The Z push magnifies through the perspective, so the rendered display is
+   bigger than its layout box. --seg-h is sized for the narrower column and the
+   padding reserves room for the floor reflection. */
+.segclock{--seg-h:44px;--seg-on:var(--accent);--seg-ink:#fff;display:grid;gap:10px;justify-items:start;
+  perspective:620px;
+  /* The camera has to sit ABOVE the display or the reflection plane is exactly
+     edge-on and renders as nothing. Moving the vanishing point up tips the
+     floor toward the viewer without rotating the digits themselves. */
+  perspective-origin:50% -45%;
+  transform-style:preserve-3d;margin:10px 0 0 -20px;
+  /* the Z push and the drift both push the display outside its layout box,
+     so the padding has to cover both before overflow clips it */
+  padding:14px 20px 50px}
+/* slow yaw */
+.seg-rot{transform-style:preserve-3d;animation:segYaw 40s ease-in-out infinite}
+/* drift, on a different period so the two beat against each other. The Z push
+   is what makes the yaw actually read — without it a 9° turn at this size is
+   almost invisible. */
+.seg-stage{position:relative;transform-style:preserve-3d;color:var(--seg-on);
+  translate:0 0 36px;animation:segDrift 30s ease-in-out infinite}
+.seg-face{display:flex;align-items:center;gap:10px;transform-style:preserve-3d}
+.seg-face .group{display:flex;gap:7px;transform-style:preserve-3d}
+.digit{position:relative;height:var(--seg-h);width:calc(var(--seg-h)/2);margin:0;
+  filter:drop-shadow(0 0 5px currentColor) drop-shadow(0 0 14px currentColor)}
+.digit span{--act:0;--sx:1;--sy:1;position:absolute;background:var(--seg-ink);
+  opacity:calc(.04 + .96*var(--act));transform:scale(var(--sx),var(--sy));
+  transition:opacity .3s cubic-bezier(.17,.67,.5,1.15)}
+.digit .end{clip-path:polygon(15% 0%,7.5% 20%,25% 100%,75% 100%,92.5% 20%,85% 0%);width:100%;height:10%}
+.digit .end.top{top:0}
+.digit .end.bottom{bottom:0;--sy:-1}
+.digit .side{clip-path:polygon(0% 15%,20% 7.5%,100% 22.5%,100% 85%,20% 95%,0% 90%);height:50%;width:20%}
+.digit .side.left{top:0;left:0}
+.digit .side.left.bottom{top:auto;bottom:0;--sy:-1}
+.digit .side.right{top:0;right:0;--sx:-1}
+.digit .side.right.bottom{top:auto;bottom:0;--sy:-1}
+.digit .middle{clip-path:polygon(22.5% 0%,6.5% 50%,22.5% 100%,77.5% 100%,93.5% 50%,77.5% 0%);
+  top:45%;height:10%;width:100%}
+/* which bars are lit, per numeral */
+.digit[data-digit="0"] :not(.middle){--act:1}
+.digit[data-digit="1"] .right{--act:1}
+.digit[data-digit="2"] :not(.top.left,.bottom.right){--act:1}
+.digit[data-digit="3"] :not(.left){--act:1}
+.digit[data-digit="4"] :not(.end,.bottom.left){--act:1}
+.digit[data-digit="5"] :not(.top.right,.bottom.left){--act:1}
+.digit[data-digit="6"] :not(.top.right){--act:1}
+.digit[data-digit="7"] .top,.digit[data-digit="7"] .right{--act:1}
+.digit[data-digit="8"]>*{--act:1}
+.digit[data-digit="9"] :not(.bottom.left){--act:1}
+.colon{display:flex;flex-direction:column;justify-content:space-evenly;align-items:center;
+  height:var(--seg-h);width:calc(var(--seg-h)/5);
+  filter:drop-shadow(0 0 5px currentColor) drop-shadow(0 0 14px currentColor)}
+.colon i{display:block;width:calc(var(--seg-h)/9);aspect-ratio:1;background:var(--seg-ink);border-radius:50%}
+
+/* The reflections: the display laid flat into the floor. One is a wide soft
+   pool of light, the other a tighter mirror image that fades with distance. */
+.seg-shadow{position:absolute;top:0;left:0;transform-origin:bottom center;
+  transform:translateY(5px) translateZ(2px) rotateX(-90.1deg);pointer-events:none}
+.seg-shadow1{opacity:.55;filter:drop-shadow(0 0 6px currentColor) drop-shadow(0 0 16px currentColor) blur(18px)}
+.seg-shadow1 .digit,.seg-shadow1 .colon{
+  -webkit-mask-image:linear-gradient(to bottom,#fff,rgba(0,0,0,.35));
+  mask-image:linear-gradient(to bottom,#fff,rgba(0,0,0,.35))}
+.seg-shadow2{opacity:.4;filter:drop-shadow(0 0 5px currentColor) blur(2.5px)}
+.seg-shadow2 .digit,.seg-shadow2 .colon{
+  -webkit-mask-image:linear-gradient(to top,#000,rgba(0,0,0,.1) 55%,transparent);
+  mask-image:linear-gradient(to top,#000,rgba(0,0,0,.1) 55%,transparent)}
+/* above the display: the reflection pools exactly where a caption under it
+   would sit */
+.seg-cap{letter-spacing:.24em;text-transform:uppercase;order:-1;padding-left:20px}
+@keyframes segYaw{
+  0%{transform:rotateY(-9deg)}
+  50%{transform:rotateY(9deg)}
+  100%{transform:rotateY(-9deg)}}
+@keyframes segDrift{
+  0%{translate:0 0 36px}
+  20%{translate:5px 2px 36px}
+  40%{translate:-7px 4px 36px}
+  60%{translate:-4px -2px 36px}
+  80%{translate:6px -3px 36px}
+  100%{translate:0 0 36px}}
+body.lightmode .segclock{--seg-ink:#0B6E86;--seg-on:#17A2C4}
+body.nomotion .seg-rot,body.nomotion .seg-stage{animation:none}
+
 .cside{display:grid;gap:16px;align-content:start}
 .cside h3{font-size:20px}
 .links{display:grid;gap:13px}
@@ -684,7 +994,7 @@ body.daylight .jrny-end p,body.daylight .scroll-hint{
   text-transform:uppercase;color:var(--accent);
   background:var(--glass);border:1px solid var(--glass-brd);backdrop-filter:var(--glass-blur);transition:.3s}
 .jexp svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-.jexp:hover{border-color:var(--accent);background:var(--glass-2);transform:translateY(-2px)}
+.jexp:hover{border-color:var(--accent);background:var(--glass-2);transform:scale(1.07)}
 .jsec{padding-top:clamp(42px,5vw,56px)}
 
 /* ---------- interest modal ---------- */
@@ -811,11 +1121,15 @@ body.lightmode .case-bd{background:rgba(226,228,242,.75)}
   background:linear-gradient(180deg,transparent,rgba(120,255,210,.055),transparent);
   animation:crt 6.5s linear infinite}
 @keyframes crt{from{top:-30%}to{top:102%}}
-#term.glitching{animation:tglitch .16s steps(2) 3}
-@keyframes tglitch{0%{transform:translate(-50%,0)}
-  33%{transform:translate(calc(-50% - 4px),1px) skewX(.5deg);filter:hue-rotate(28deg)}
-  66%{transform:translate(calc(-50% + 3px),-1px) skewX(-.4deg)}
-  100%{transform:translate(-50%,0)}}
+/* a bad connection rather than an alarm: the picture tears and the
+   brightness drops for a frame or two, and nothing moves the panel far */
+#term.glitching{animation:tglitch .17s steps(2) 3}
+@keyframes tglitch{
+  0%{transform:translate(-50%,0);opacity:1;filter:none}
+  28%{transform:translate(calc(-50% - 3px),0);opacity:.72;filter:brightness(1.5) saturate(.4)}
+  52%{transform:translate(calc(-50% + 2px),1px);opacity:.9;filter:brightness(.6)}
+  76%{transform:translate(calc(-50% - 1px),0);opacity:.6;filter:brightness(1.2)}
+  100%{transform:translate(-50%,0);opacity:1;filter:none}}
 .term-bar{display:flex;align-items:center;gap:7px;padding:9px 13px;border-bottom:1px solid rgba(80,255,190,.22);
   background:rgba(8,22,18,.8);position:relative;z-index:3}
 .tdot{width:9px;height:9px;border-radius:50%;background:#2B4A40}
@@ -837,17 +1151,13 @@ body.lightmode .case-bd{background:rgba(226,228,242,.75)}
   background:rgba(6,16,14,.55)}
 .radar-wrap,.scan-wrap{position:relative;border:1px solid rgba(80,255,190,.25);border-radius:10px;overflow:hidden;
   background:radial-gradient(circle at 50% 50%,rgba(20,70,56,.5),rgba(4,12,10,.85))}
-.radar-wrap{aspect-ratio:1}.scan-wrap{aspect-ratio:1}
-#radar,#alien-scan{width:100%;height:100%;display:block}
+.radar-wrap{aspect-ratio:1}.scan-wrap{aspect-ratio:16/7}
+#radar,#signal-wave{width:100%;height:100%;display:block}
 .radar-cap{position:absolute;left:7px;top:5px;font-size:8.5px;letter-spacing:.2em;color:#3DDCA0;opacity:.7}
-#term.contact{border-color:rgba(255,120,140,.55);box-shadow:0 -22px 70px rgba(0,0,0,.72),inset 0 0 80px rgba(255,80,110,.12)}
-#term.contact .sigbar{color:#FF7A8A;animation-duration:.3s}
-#term.contact .radar-wrap{border-color:rgba(255,120,140,.5)}
-#term.scanning .scan-wrap{border-color:rgba(120,255,210,.6);box-shadow:0 0 22px rgba(80,255,190,.35)}
+/* something is on the channel — a colour shift only, no shake and no alarm */
+#term.signal .sigbar{color:#FF7A8A;animation-duration:.3s}
+#term.signal .scan-wrap{border-color:rgba(255,120,140,.5)}
 /* give the scan more room once there is something to look at */
-#term.contact .term-body{grid-template-columns:1fr 300px}
-#term.contact .scan-wrap{aspect-ratio:3/4}
-#term.contact .radar-wrap{aspect-ratio:2/1}
 
 /* ---------- toast ---------- */
 #toast{position:fixed;left:50%;bottom:96px;transform:translate(-50%,24px);z-index:1200;opacity:0;pointer-events:none;
@@ -885,7 +1195,7 @@ body.zerog .feat,body.zerog .post,body.zerog .edu,body.zerog .stat,body.zerog .w
   .htrack{height:auto}
   .hsticky{position:static;height:auto;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:12px}
   .hrail{transform:none!important}
-  .wcard{scroll-snap-align:center}
+  .wcard{transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s,border-color .35s;scroll-snap-align:center}
   .edu{flex-direction:column;align-items:flex-start}
   .edu-r{text-align:left}
   .foot-row{flex-direction:column;align-items:flex-start}

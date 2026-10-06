@@ -3,7 +3,6 @@ import Sky from '../lib/sky.js';
 import { Aud, Term } from '../lib/terminal.js';
 import { setSmoothScroll } from '../lib/motion.js';
 import { prefersReducedMotion } from '../lib/loop.js';
-import { skySet, idleClip } from '../data/interests.js';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -28,9 +27,7 @@ export function AppState({ children }) {
   const [routeKey, setRouteKey] = useState('home');
 
   const clearManual = useRef(false);
-  const autoAudio = useRef(false);
   const idleTimer = useRef(null);
-  const lastPick = useRef(-1);
   const toastTimer = useRef(null);
   const routeRef = useRef('home');
   routeRef.current = routeKey;
@@ -76,37 +73,19 @@ export function AppState({ children }) {
     toastTimer.current = setTimeout(() => setToastMsg(''), 2200);
   }, []);
 
-  /* ---------------- cleared sky ---------------- */
-  const pickClip = useCallback(() => {
-    if (routeRef.current === 'interests') return idleClip;
-    if (skySet.length < 2) return skySet[0];
-    let i;
-    do { i = Math.floor(Math.random() * skySet.length); } while (i === lastPick.current);
-    lastPick.current = i;
-    return skySet[i];
+  /* ---------------- cleared sky ----------------
+     Darkness plus fireflies, drawn in src/lib/fireflies.js. No clip, and no
+     ambient audio — the drone lives in the Features fan only. */
+  const setClear = useCallback((on, manual = false) => {
+    setSkyClear((was) => {
+      if (was === on) { if (manual) clearManual.current = on; return was; }
+      clearManual.current = on ? manual : false;
+      document.body.classList.toggle('skyclear', on);
+      // the procedural sky stays down on /interests, where the backdrop is video
+      Sky.setHidden(routeRef.current === 'interests');
+      return on;
+    });
   }, []);
-
-  const [clip, setClip] = useState(null);
-
-  const setClear = useCallback(
-    (on, manual = false) => {
-      setSkyClear((was) => {
-        if (was === on) { if (manual) clearManual.current = on; return was; }
-        clearManual.current = on ? manual : false;
-        document.body.classList.toggle('skyclear', on);
-        Sky.setHidden(on || routeRef.current === 'interests');
-        if (on) {
-          setClip(pickClip());
-          if (!features.audio) { Aud.unlock(); Aud.drone(true); autoAudio.current = true; }
-        } else if (autoAudio.current && !features.audio) {
-          Aud.drone(false);
-          autoAudio.current = false;
-        }
-        return on;
-      });
-    },
-    [features.audio, pickClip]
-  );
 
   /* ---------------- idle ---------------- */
   const kickIdle = useCallback(() => {
@@ -141,7 +120,6 @@ export function AppState({ children }) {
         if (key === 'audio') {
           Aud.unlock();
           Aud.drone(next.audio);
-          autoAudio.current = false;
           toast(next.audio ? 'Ambient audio on' : 'Ambient audio off');
         }
         return next;
@@ -153,14 +131,14 @@ export function AppState({ children }) {
   const value = useMemo(
     () => ({
       isLight, toggleTheme,
-      skyClear, setClear, clip,
+      skyClear, setClear,
       toast, toastMsg,
       features, toggleFeature,
       termOpen, setTermOpen,
       routeKey, setRouteKey,
       kickIdle,
     }),
-    [isLight, toggleTheme, skyClear, setClear, clip, toast, toastMsg, features, toggleFeature, termOpen, routeKey, kickIdle]
+    [isLight, toggleTheme, skyClear, setClear, toast, toastMsg, features, toggleFeature, termOpen, routeKey, kickIdle]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

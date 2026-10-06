@@ -5,7 +5,10 @@
    means adding a path string and nothing else. */
 
 const N = 2200;
-const LINK = 26; // neighbour radius, in CSS px, for the edge pass
+/* Neighbour radius for the edge pass, in CSS px. Too large and the tight
+   curves at the top of a glyph connect to everything inside them, which
+   stops reading as a network and turns into a solid blob. */
+const LINK = 16;
 
 const GLYPH = {
   home: 'M14 52 L50 20 L86 52 L86 86 L62 86 L62 62 L38 62 L38 86 L14 86 Z',
@@ -17,31 +20,56 @@ const GLYPH = {
   interests: 'M50 14 L61 40 L89 44 L69 64 L74 92 L50 78 L26 92 L31 64 L11 44 L39 40 Z',
 };
 
+/** Rasterise a glyph path, then normalise the hits against the INK's own
+ *  bounding box rather than the 100×100 viewBox. Every glyph then fills the
+ *  panel to the same degree regardless of how much padding its path happens
+ *  to carry, and the result is square-fitted so nothing is stretched. */
 function sample(d) {
   const off = document.createElement('canvas');
   off.width = 100;
   off.height = 100;
   const o = off.getContext('2d');
   o.strokeStyle = '#fff';
-  o.lineWidth = 9;
+  // a thin stroke keeps the point cloud legible as a network; at 9 the tight
+  // curves at the top of a glyph filled in solid
+  o.lineWidth = 5;
   o.lineJoin = 'round';
   o.lineCap = 'round';
   o.stroke(new Path2D(d));
+
   const px = o.getImageData(0, 0, 100, 100).data;
   const hits = [];
+  let x0 = 100;
+  let y0 = 100;
+  let x1 = 0;
+  let y1 = 0;
   for (let y = 0; y < 100; y++) {
     for (let x = 0; x < 100; x++) {
-      if (px[(y * 100 + x) * 4 + 3] > 90) hits.push([x / 100, y / 100]);
+      if (px[(y * 100 + x) * 4 + 3] <= 90) continue;
+      hits.push([x, y]);
+      if (x < x0) x0 = x;
+      if (y < y0) y0 = y;
+      if (x > x1) x1 = x;
+      if (y > y1) y1 = y;
     }
   }
+  if (!hits.length) return [[0.5, 0.5]];
+
+  const w = Math.max(1, x1 - x0);
+  const h = Math.max(1, y1 - y0);
+  const s = Math.max(w, h); // square fit — uniform scale on both axes
+  const padX = (s - w) / 2;
+  const padY = (s - h) / 2;
+  const norm = hits.map(([x, y]) => [(x - x0 + padX) / s, (y - y0 + padY) / s]);
+
   // shuffle, or point-to-pixel assignment produces visible banding
-  for (let i = hits.length - 1; i > 0; i--) {
+  for (let i = norm.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    const t = hits[i];
-    hits[i] = hits[j];
-    hits[j] = t;
+    const t = norm[i];
+    norm[i] = norm[j];
+    norm[j] = t;
   }
-  return hits;
+  return norm;
 }
 
 export function createNet(canvas) {
@@ -98,7 +126,7 @@ export function createNet(canvas) {
       if (!shapes[key]) shapes[key] = sample(GLYPH[key] || GLYPH.home);
       const pts = shapes[key];
       const n = pts.length;
-      const S = Math.min(W, H) * 0.74;
+      const S = Math.min(W, H) * 0.82;
       const ox = (W - S) / 2;
       const oy = (H - S) / 2;
       P.forEach((p, i) => {

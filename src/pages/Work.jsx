@@ -1,6 +1,5 @@
 import { SplitHeading } from '../components/primitives.jsx';
 import WorkZone, { NeuralCanvas } from '../components/WorkZone.jsx';
-import { BuildBot } from '../components/Robot.jsx';
 
 /* Two zones, kept visually distinct because the work is judged differently:
    research by what it proves, engineering by whether it runs. */
@@ -32,9 +31,7 @@ export default function Work({ onCase }) {
         label="Engineering"
         note="Shipped, or close to it."
         onOpen={onCase}
-      >
-        <BuildBot />
-      </WorkZone>
+      />
     </section>
   );
 }
