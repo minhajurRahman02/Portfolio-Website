@@ -227,14 +227,36 @@ export function mountInterests(host, opts = {}) {
   document.documentElement.addEventListener('pointerleave', onLeave);
   window.addEventListener('resize', onResize);
 
+  /* Arriving from another route, the page height has only just changed:
+     Lenis still holds the previous page's scroll limit (so a jump gets clamped
+     short — every link used to land in about the same scene) and the site's
+     route swap can reset scroll right after mount. So: re-measure, make Lenis
+     re-read the page, jump, and for instant jumps check again until it sticks. */
+  let goT = [];
   function goTo(id, instant = false) {
     const k = SCENES.findIndex((s) => s.id === id);
     if (k < 0) return;
-    const r = SCENES[k].rest;
-    const y = hostTop + starts[k] + ((r[0] + r[1]) / 2) * lens[k];
-    const L = o.lenis && o.lenis();
-    if (L) L.scrollTo(y, { immediate: instant, duration: instant ? 0 : 1.8, force: true });
-    else window.scrollTo({ top: y, behavior: instant || o.reduced() ? 'auto' : 'smooth' });
+    goT.forEach(clearTimeout); goT = [];
+    const target = () => {
+      measure();
+      const r = SCENES[k].rest;
+      return hostTop + starts[k] + ((r[0] + r[1]) / 2) * lens[k];
+    };
+    const jump = () => {
+      const y = target();
+      const L = o.lenis && o.lenis();
+      if (L) {
+        L.resize && L.resize();
+        L.scrollTo(y, { immediate: instant, duration: instant ? 0 : 1.8, force: true });
+      } else window.scrollTo({ top: y, behavior: instant || o.reduced() ? 'auto' : 'smooth' });
+      return y;
+    };
+    jump();
+    if (instant) {
+      for (const ms of [180, 450, 900]) {
+        goT.push(setTimeout(() => { if (Math.abs(window.scrollY - target()) > 4) jump(); }, ms));
+      }
+    }
   }
 
   host.addEventListener('click', (e) => {
@@ -335,8 +357,16 @@ export function mountInterests(host, opts = {}) {
     }
   }
 
+  let restingBehindSheet = false;
   function frame(time, dt) {
     if (destroyed || !W) return;
+    /* With the sheet fully open the scene is hidden behind it: draw one last
+       frame and then stop, so the page's only moving part is the sheet's own
+       scroll (this is what made sheet scrolling lag in heavier browsers). */
+    const full = sheet.state.open && sheet.state.v >= 0.999;
+    if (full && restingBehindSheet) return;
+    if (full !== host.classList.contains('ix-sheet-full')) host.classList.toggle('ix-sheet-full', full);
+    restingBehindSheet = full;
     frameNo++;
     const calm = o.reduced();
     const yRaw = window.scrollY - hostTop;
@@ -454,6 +484,7 @@ export function mountInterests(host, opts = {}) {
     relayout() { measure(); sizeCanvas(); dirty = true; },
     destroy() {
       destroyed = true;
+      goT.forEach(clearTimeout);
       off && off();
       ro && ro.disconnect();
       clearTimeout(rzT);

@@ -182,7 +182,6 @@ export function TopBar({ onMenu }) {
    resize. */
 const DOCK_MAX = 0.88;   // peak extra scale
 const DOCK_SIGMA = 84;   // falloff of the magnification, px
-const HEADROOM = 26;     // how far the icons rise above the pill, px
 const NEAR_MARGIN = 14;  // how much nearer a challenger must be to steal the highlight
 
 export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
@@ -195,7 +194,9 @@ export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
     const items = Array.from(host.querySelectorAll('.dk'));
 
     let rest = [];     // icon centre x, relative to the dock box, at rest
+    let rects = [];    // icon boxes at rest, relative to the dock box
     let near = -1;     // which icon currently owns the highlight
+    let active = false; // magnifying right now?
     let box = { w: 0, h: 0, left: 0, top: 0, bottom: 0 };
 
     const measure = () => {
@@ -204,10 +205,11 @@ export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
       const hr = host.getBoundingClientRect();
       box.w = hr.width;
       box.h = hr.height;
-      rest = items.map((d) => {
+      rects = items.map((d) => {
         const b = d.getBoundingClientRect();
-        return b.left + b.width / 2 - hr.left;
+        return { l: b.left - hr.left, r: b.right - hr.left, t: b.top - hr.top, b: b.bottom - hr.top };
       });
+      rest = rects.map((q) => (q.l + q.r) / 2);
       anchor();
     };
 
@@ -225,11 +227,19 @@ export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
 
     const magnify = (x, y) => {
       anchor();
-      // the rest box, with headroom above it for the risen icons
-      const inside =
-        x >= box.left && x <= box.left + box.w &&
-        y >= box.top - HEADROOM - 8 && y <= box.bottom;
+      /* The dock wakes only when the pointer touches an icon itself — not the
+         pill around the icons, and not the air above it. Once awake it stays
+         awake while the pointer is anywhere on the pill (which grows with the
+         risen icons, so gaps between icons never drop it), and resets the
+         moment the pointer leaves the pill's background. */
       const lx = x - box.left;
+      const ly = y - box.top;
+      if (!rects.length) return;
+      const onIcon = rects.some((q) => lx >= q.l && lx <= q.r && ly >= q.t && ly <= q.b);
+      const pill = host.getBoundingClientRect();
+      const onPill = x >= pill.left && x <= pill.right && y >= pill.top && y <= pill.bottom;
+      active = active ? onPill : onIcon;
+      const inside = active;
 
       /* Which icon is "under" the cursor is decided here, by nearest rest
          centre, not by :hover. There is a 5px gap between icons, and in it
@@ -264,10 +274,12 @@ export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
     measure();
     const onMove = (e) => magnify(e.clientX, e.clientY);
     const onResize = () => measure();
-    const onLeave = () => { near = -1; items.forEach((d) => { d._t = 1; d.classList.remove('near'); }); };
+    const onLeave = () => { active = false; near = -1; items.forEach((d) => { d._t = 1; d.classList.remove('near'); }); };
     window.addEventListener('pointermove', onMove, { passive: true });
     window.addEventListener('resize', onResize);
+    // leaving the pill's background (or the window) resets the dock at once
     host.addEventListener('pointerleave', onLeave);
+    document.documentElement.addEventListener('pointerleave', onLeave);
 
     const off = onFrame((t, dt) => {
       const k = approach(0.17, dt);
@@ -282,6 +294,7 @@ export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('resize', onResize);
       host.removeEventListener('pointerleave', onLeave);
+      document.documentElement.removeEventListener('pointerleave', onLeave);
       off();
     };
   }, []);

@@ -114,7 +114,7 @@ export function createSheet({ getLenis, reduced, media = {}, accentFor, onState 
   root.innerHTML = `
     <div class="ix-scrim"></div>
     <div class="ix-sheet" role="dialog" aria-modal="true" aria-labelledby="ix-sheet-title" style="--gap:${SHEET.topGap};--rad:${SHEET.radius}px">
-      <div class="ix-sheet-scroll" data-lenis-prevent>
+      <div class="ix-sheet-scroll" data-lenis-prevent tabindex="-1">
         <div class="ix-sheet-bar"><button class="ix-close ix-glass" type="button" aria-label="Close">${icon('close')}</button></div>
         <div class="ix-sheet-inner"></div>
       </div>
@@ -127,8 +127,30 @@ export function createSheet({ getLenis, reduced, media = {}, accentFor, onState 
   const closeBtn = root.querySelector('.ix-close');
   let opener = null, unReveal = () => {}, tl = null;
 
-  /* ---- scroll lock ---- */
-  const swallow = (e) => { if (!scroller.contains(e.target)) e.preventDefault(); };
+  /* ---- scroll lock ----
+     The sheet's own scroller must never be blocked, whatever else on the page
+     listens for wheel/touch (Lenis, the lock below, site handlers). So:
+     1. wheel/touch events stop at the scroller and never reach window;
+     2. anything that still reaches window from outside the sheet is cancelled;
+     3. if a wheel tick somehow did not move the scroller although it could
+        move, it is applied by hand on the next frame. */
+  const inSheet = (e) => (e.composedPath ? e.composedPath().includes(scroller) : scroller.contains(e.target));
+  const swallow = (e) => { if (!inSheet(e) && e.cancelable) e.preventDefault(); };
+  const stopHere = (e) => e.stopPropagation();
+  const onWheel = (e) => {
+    e.stopPropagation();
+    if (e.ctrlKey) return; // pinch-zoom
+    const before = scroller.scrollTop;
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? scroller.clientHeight : 1;
+    const dy = e.deltaY * unit;
+    requestAnimationFrame(() => {
+      const max = scroller.scrollHeight - scroller.clientHeight;
+      const room = dy > 0 ? before < max - 1 : before > 0;
+      if (scroller.scrollTop === before && room && Math.abs(dy) > 0) scroller.scrollTop = before + dy;
+    });
+  };
+  scroller.addEventListener('wheel', onWheel, { passive: true });
+  scroller.addEventListener('touchmove', stopHere, { passive: true });
   function lock(on) {
     const L = getLenis && getLenis();
     document.documentElement.classList.toggle('ix-locked', on);
@@ -180,9 +202,14 @@ export function createSheet({ getLenis, reduced, media = {}, accentFor, onState 
     } else {
       tl.fromTo(sheet, { yPercent: 102, opacity: 1 }, { yPercent: 0, duration: SHEET.openDur, ease: 'power3.out' }, 0.04)
         .fromTo(scrim, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: 'power1.out' }, 0)
-        .to(state, { v: 1, duration: SHEET.openDur * 1.15, ease: 'power2.out' }, 0);
+        .to(state, { v: 1, duration: SHEET.openDur * 1.15, ease: 'power2.out' }, 0)
+        // drop the compositing hint once it has landed; a lingering transform
+        // layer around a scroller is a known source of stuck scrolling in Safari
+        .set(sheet, { clearProps: 'transform', willChange: 'auto' });
     }
-    requestAnimationFrame(() => closeBtn.focus({ preventScroll: true }));
+    // focus the scroll area itself: arrow keys, Space and Page Down then scroll
+    // the sheet (Space on the close button would close it); Tab reaches the X
+    requestAnimationFrame(() => scroller.focus({ preventScroll: true }));
   }
 
   function close() {
@@ -220,6 +247,8 @@ export function createSheet({ getLenis, reduced, media = {}, accentFor, onState 
       if (state.open) lock(false);
       document.removeEventListener('keydown', onKey, true);
       unReveal();
+      scroller.removeEventListener('wheel', onWheel);
+      scroller.removeEventListener('touchmove', stopHere);
       root.remove();
     },
   };

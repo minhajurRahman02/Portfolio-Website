@@ -191,21 +191,36 @@ html.ix-locked { overflow: hidden; scrollbar-gutter: stable; }
 .ix-btn .ix-ico { width: 15px; height: 15px; }
 
 /* ---------------------------------------------------------- bottom sheet */
+/* while a sheet is fully open nothing behind it needs to composite: the glass
+   cards' refraction, the rail and the animated grain all stand down */
+.ix-sheet-full .ix-card, .ix-sheet-full .ix-mini, .ix-sheet-full .ix-rail,
+.ix-sheet-full .ix-outro, .ix-sheet-full .ix-intro { visibility: hidden !important; }
+.ix-sheet-full .ix-grain, .ix-sheet-full .ix-vignette { display: none; }
 .ix-sheet-root { position: fixed; inset: 0; z-index: 9000; font-family: var(--ix-fb); }
 .ix-sheet-root[hidden] { display: none; }
 .ix-scrim { position: absolute; inset: 0; background: rgba(6, 6, 14, .32); }
 .ix-sheet {
   position: absolute; left: 0; right: 0; bottom: 0; top: var(--gap); border-radius: var(--rad) var(--rad) 0 0; overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 -24px 80px -20px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .5);
+  color: var(--ix-sheet-fg); will-change: transform; isolation: isolate;
+}
+/* the frosted backdrop lives on its own layer behind the content, not on the
+   scroller's parent — backdrop-filter on an ancestor of a scroll area can stop
+   it scrolling in some browsers */
+.ix-sheet::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; border-radius: inherit;
   background: linear-gradient(180deg, color-mix(in srgb, var(--acc) 14%, transparent), transparent 240px), var(--ix-sheet-bg);
   -webkit-backdrop-filter: blur(30px) saturate(1.5); backdrop-filter: blur(30px) saturate(1.5);
-  box-shadow: 0 -24px 80px -20px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .5);
-  color: var(--ix-sheet-fg); will-change: transform;
 }
 .ix-sheet::before {
   content: ""; position: absolute; top: 9px; left: 50%; width: 44px; height: 5px; margin-left: -22px; border-radius: 4px;
   background: var(--ix-sheet-line); z-index: 6;
 }
-.ix-sheet-scroll { height: 100%; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.ix-sheet-scroll {
+  flex: 1 1 auto; min-height: 0; height: 100%; overflow-x: hidden; overflow-y: auto;
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; outline: none;
+}
 .ix-sheet-bar { position: sticky; top: 0; height: 0; z-index: 5; display: flex; justify-content: flex-end; }
 .ix-close {
   --lg: url(#lg-card);

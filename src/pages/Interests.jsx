@@ -32,7 +32,8 @@ export default function Interests() {
   /* arriving from the About carousel: /interests#gaming */
   useEffect(() => {
     if (!hash || !app.current) return;
-    const t = setTimeout(() => app.current?.goTo(hash.slice(1), true), 120);
+    // after the route curtain has swapped the page in; goTo re-checks until it sticks
+    const t = setTimeout(() => app.current?.goTo(hash.slice(1), true), 160);
     return () => clearTimeout(t);
   }, [hash]);
 
