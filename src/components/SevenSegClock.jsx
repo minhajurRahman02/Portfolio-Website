@@ -55,32 +55,35 @@ export default function SevenSegClock() {
   const [t, setT] = useState(() => ({ h: 0, m: 0, s: 0 }));
 
   useEffect(() => {
-    let raf;
-    let last = -1;
+    /* Built once: constructing an Intl formatter is expensive, and the old
+       loop built one on every animation frame. */
+    let fmt = null;
+    try {
+      fmt = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false, timeZone: profile.timezone, // the profile's timezone, not the visitor's
+      });
+    } catch { fmt = null; }
+
     const read = () => {
-      // the profile's timezone, not the visitor's
-      let parts;
-      try {
-        parts = new Intl.DateTimeFormat('en-GB', {
-          hour: '2-digit', minute: '2-digit', second: '2-digit',
-          hour12: false, timeZone: profile.timezone,
-        }).formatToParts(new Date());
-      } catch {
-        const d = new Date();
-        return { h: d.getHours(), m: d.getMinutes(), s: d.getSeconds() };
-      }
+      const d = new Date();
+      if (!fmt) return { h: d.getHours(), m: d.getMinutes(), s: d.getSeconds() };
+      const parts = fmt.formatToParts(d);
       const get = (type) => Number(parts.find((p) => p.type === type)?.value ?? 0);
       return { h: get('hour'), m: get('minute'), s: get('second') };
     };
 
-    const loop = () => {
+    /* Wake once per second, just after it turns over, instead of polling
+       every frame — the display changes once a second either way. */
+    let timer;
+    let last = -1;
+    const tick = () => {
       const now = read();
-      // only re-render when the second actually turns over
       if (now.s !== last) { last = now.s; setT(now); }
-      raf = requestAnimationFrame(loop);
+      timer = setTimeout(tick, 1000 - (Date.now() % 1000) + 8);
     };
-    loop();
-    return () => cancelAnimationFrame(raf);
+    tick();
+    return () => clearTimeout(timer);
   }, []);
 
   return (

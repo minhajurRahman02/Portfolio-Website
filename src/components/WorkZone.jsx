@@ -54,7 +54,15 @@ export function NeuralCanvas() {
     size();
     window.addEventListener('resize', size);
 
+    // only animate while the canvas is on screen; off screen it simply holds
+    let visible = true;
+    const io = 'IntersectionObserver' in window
+      ? new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { rootMargin: '120px 0px' })
+      : null;
+    io && io.observe(canvas);
+
     const off = onFrame((t, dt) => {
+      if (!visible) return;
       if (!W) { size(); return; }
       const f = dt * 60;
       const L = document.body.classList.contains('lightmode');
@@ -103,7 +111,7 @@ export function NeuralCanvas() {
       });
     });
 
-    return () => { off(); window.removeEventListener('resize', size); };
+    return () => { off(); io && io.disconnect(); window.removeEventListener('resize', size); };
   }, []);
 
   return <canvas className="neural" ref={cv} aria-hidden="true" />;
@@ -178,15 +186,23 @@ export default function WorkZone({ zone, letter, label, note, children, onOpen }
     // remeasure once the newly revealed cards have been laid out
     const settle = setTimeout(() => { over = measure(); }, 60);
 
+    // recompute only when the scroll position or the measured overflow moved;
+    // reading layout and writing a transform every idle frame was pure cost
+    let lastY = NaN, lastOver = NaN, lastH = NaN, lastT = '';
     const off = onFrame(() => {
       if (window.innerWidth <= 760) return;
       const tr = track.current;
       const r = rail.current;
       if (!tr || !r || over <= 0) return;
+      const y = window.scrollY;
+      const vh = window.innerHeight;
+      if (y === lastY && over === lastOver && vh === lastH) return;
+      lastY = y; lastOver = over; lastH = vh;
       const total = tr.offsetHeight - window.innerHeight;
       if (total <= 0) return;
       const p = clamp(-tr.getBoundingClientRect().top / total, 0, 1);
-      r.style.transform = `translate3d(${-p * over}px,0,0)`;
+      const tf = `translate3d(${-p * over}px,0,0)`;
+      if (tf !== lastT) { r.style.transform = tf; lastT = tf; }
     });
 
     return () => { off(); clearTimeout(settle); window.removeEventListener('resize', onResize); };

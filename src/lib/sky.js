@@ -81,7 +81,8 @@
   var light = false, clearAmt = 0, clearTgt = 0, journey = null;
   var vel = 0, mx = 0.5, my = 0.5, mxC = 0.5, myC = 0.5, scrollY = 0;
   var W = 0, H = 0, DPR = 1;
-  var hidden = 0, hiddenTgt = 0;          // 1 = sky fully handed over to video
+  var hidden = 0, hiddenTgt = 0;          // 1 = sky fully handed over (Interests)
+  var lastOp = '';
   var px = -9999, py = -9999;             // cursor, in CSS pixels
 
   var stars = [], comets = [], planets = [], galaxy = [];
@@ -357,9 +358,15 @@
 
     tick: function (t, dt, frozen) {
       hidden = lerp(hidden, hiddenTgt, 1 - Math.pow(0.0015, dt / 1.4));
-      if (cv) cv.style.opacity = (1 - hidden).toFixed(3);
-      if (sCv) sCv.style.opacity = (1 - hidden).toFixed(3);
-      if (hidden > 0.985) return;               // video owns the screen
+      // write the opacity only when it changes: an unconditional style write
+      // every frame invalidates style on two full-screen canvases for nothing
+      var op = (1 - hidden).toFixed(3);
+      if (op !== lastOp) {
+        lastOp = op;
+        if (cv) cv.style.opacity = op;
+        if (sCv) sCv.style.opacity = op;
+      }
+      if (hidden > 0.985) return;               // another layer owns the screen
 
       var kSlow = 1 - Math.pow(0.0015, dt / 1.1);
       var kClear = 1 - Math.pow(0.0015, dt / 2.6);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 
 import Backdrop from './components/Backdrop.jsx';
@@ -15,12 +15,17 @@ import Work from './pages/Work.jsx';
 import About from './pages/About.jsx';
 import Blog from './pages/Blog.jsx';
 import Contact from './pages/Contact.jsx';
-import Interests from './pages/Interests.jsx';
+/* The Interests engine is the heaviest code on the site and only that route
+   needs it, so it ships as its own chunk — fetched in the background once the
+   first page is idle, so opening the route still feels instant. */
+const loadInterests = () => import('./pages/Interests.jsx');
+const Interests = lazy(loadInterests);
 import NotFound from './pages/NotFound.jsx';
 
 import { useApp } from './context/AppState.jsx';
 import { setSmoothScroll, refreshTriggers, scrollTop } from './lib/motion.js';
 import { prefersReducedMotion } from './lib/loop.js';
+import { startOffscreenPause } from './lib/offscreen.js';
 import Sky from './lib/sky.js';
 import { routes, profile } from './data/site.js';
 
@@ -87,6 +92,16 @@ export default function App() {
     setMenu(false);
     setFeat(false);
   }, [shown.pathname, setRouteKey]);
+
+  /* decorative CSS loops pause while off screen */
+  useEffect(() => startOffscreenPause(document.body), []);
+
+  /* warm the Interests chunk once the page has settled */
+  useEffect(() => {
+    const go = () => { loadInterests().catch(() => {}); };
+    const id = 'requestIdleCallback' in window ? window.requestIdleCallback(go, { timeout: 4000 }) : setTimeout(go, 2500);
+    return () => ('cancelIdleCallback' in window ? window.cancelIdleCallback(id) : clearTimeout(id));
+  }, []);
 
   /* smooth scroll follows the Reduce-motion switch */
   useEffect(() => {
@@ -160,7 +175,7 @@ export default function App() {
           <Route path="/about" element={<About />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/interests" element={<Interests />} />
+          <Route path="/interests" element={<Suspense fallback={null}><Interests /></Suspense>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

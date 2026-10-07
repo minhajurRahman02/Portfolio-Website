@@ -87,6 +87,9 @@ export function Cursor() {
     window.addEventListener('pointermove', onSheen, { passive: true });
     document.addEventListener('pointerover', onOver);
 
+    // last written transforms: identical strings are not written again, so a
+    // resting cursor costs no style work at all
+    let lastDot = '', lastRing = '', lastMag = '';
     const off = onFrame((t, dt) => {
       const k = approach(0.12, dt);
       rp.x = lerp(rp.x, cp.x, k);
@@ -103,14 +106,17 @@ export function Cursor() {
       if (magnet) {
         tx = magnetRest.cx;
         ty = magnetRest.cy;
-        magnet.style.transform = `translate(${(cp.x - tx) * 0.22}px,${(cp.y - ty) * 0.22}px)`;
+        const mt = `translate(${(cp.x - tx) * 0.22}px,${(cp.y - ty) * 0.22}px)`;
+        if (mt !== lastMag || magnet.style.transform !== mt) { magnet.style.transform = mt; lastMag = mt; }
         magnet._mv = 1;
-      }
+      } else lastMag = '';
 
-      if (dot.current) dot.current.style.transform = `translate(${cp.x}px,${cp.y}px)`;
+      const dt2 = `translate(${cp.x}px,${cp.y}px)`;
+      if (dot.current && dt2 !== lastDot) { dot.current.style.transform = dt2; lastDot = dt2; }
       if (ring.current) {
         const m = magnet ? 0.6 : 0;
-        ring.current.style.transform = `translate(${lerp(rp.x, tx, m)}px,${lerp(rp.y, ty, m)}px)`;
+        const rt = `translate(${lerp(rp.x, tx, m)}px,${lerp(rp.y, ty, m)}px)`;
+        if (rt !== lastRing) { ring.current.style.transform = rt; lastRing = rt; }
       }
     });
 

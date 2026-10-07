@@ -938,6 +938,12 @@ body.lightmode .iso-blocks a{box-shadow:-14px 14px 20px rgba(70,62,120,.22),
 body.lightmode .segclock{--seg-ink:#0B6E86;--seg-on:#17A2C4}
 body.nomotion .seg-rot,body.nomotion .seg-stage{animation:none}
 
+/* Off-screen pause (src/lib/offscreen.js): decorative loops stop while they
+   cannot be seen and resume where they left off. The heading's entrance
+   (chIn) keeps running; only its colour wave pauses. */
+.anim-off .seg-rot,.anim-off .seg-stage,.n-ext.anim-off,.pf-ring.anim-off,.caret.anim-off{animation-play-state:paused}
+.split.anim-off.lit .wd.hl .ch{animation-play-state:running,paused}
+
 .cside{display:grid;gap:16px;align-content:start}
 .cside h3{font-size:20px}
 .links{display:grid;gap:13px}
