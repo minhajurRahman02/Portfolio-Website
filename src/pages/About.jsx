@@ -78,7 +78,7 @@ export default function About() {
           <SplitHeading text="Outside the lab" />
           <p className="sect-note">Drag to spin · click a panel to open it.</p>
         </div>
-        <Carousel onPick={(id) => navigate(`/interests#int-${id}`)} />
+        <Carousel onPick={(id) => navigate(`/interests#${id}`)} />
       </section>
     </section>
   );

@@ -82,9 +82,8 @@ export default function App() {
     const onInterests = key === 'interests';
     document.body.classList.toggle('always-dock', onInterests);
     document.body.classList.toggle('on-interests', onInterests);
-    // the Interests backdrop is video, so the procedural sky stands down there
+    // Interests paints its own full-screen scenes, so the procedural sky stands down there
     Sky.setHidden(onInterests || document.body.classList.contains('skyclear'));
-    if (!onInterests) document.body.classList.remove('daylight');
     setMenu(false);
     setFeat(false);
   }, [shown.pathname, setRouteKey]);

@@ -92,7 +92,8 @@ export function AppState({ children }) {
     if (document.body.classList.contains('skyclear') && !clearManual.current) setClear(false);
     clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(() => {
-      if (!features.nomotion && !Term.open) setClear(true);
+      // never on Interests: the scenes are lit on purpose, darkening them hides the point
+      if (!features.nomotion && !Term.open && routeRef.current !== 'interests') setClear(true);
     }, IDLE_MS);
   }, [features.nomotion, setClear]);
 

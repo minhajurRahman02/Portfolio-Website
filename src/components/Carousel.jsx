@@ -22,7 +22,11 @@ export default function Carousel({ onPick }) {
   const render = useCallback(() => {
     panels.current.filter(Boolean).forEach((p, i) => {
       const a = i * STEP + angle.current;
-      p.style.transform = `rotateY(${a}deg) translateZ(${radius.current}px)`;
+      // pull the whole ring back by its radius so the front panel sits at z = 0
+      // and renders at its real size; without this, nine panels make a big
+      // cylinder whose front face is magnified by the perspective and spills
+      // over the controls below
+      p.style.transform = `translateZ(${-radius.current}px) rotateY(${a}deg) translateZ(${radius.current}px)`;
       const norm = ((a % 360) + 360) % 360;
       // panels on the far side must not swallow clicks meant for the front
       p.classList.toggle('far', !(norm < 40 || norm > 320));
@@ -47,7 +51,7 @@ export default function Carousel({ onPick }) {
     const el = host.current;
     if (!el) return;
     const w = el.clientWidth || 300;
-    radius.current = Math.round(w / 2 / Math.tan(Math.PI / interests.length)) + 46;
+    radius.current = Math.round(w / 2 / Math.tan(Math.PI / interests.length)) + 24;
     render();
   }, [render]);
 

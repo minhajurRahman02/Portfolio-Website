@@ -43,6 +43,9 @@ export function scrollToEl(el, opts = {}) {
   else el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+/** The live Lenis instance, or null when smooth scroll is off. */
+export const getLenis = () => lenis;
+
 export function refreshTriggers() {
   ScrollTrigger.refresh();
 }

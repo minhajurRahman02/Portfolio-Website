@@ -3,56 +3,18 @@ import Sky from '../lib/sky.js';
 import { onFrame } from '../lib/loop.js';
 import { createFireflies } from '../lib/fireflies.js';
 import { useApp } from '../context/AppState.jsx';
-import { backdrops } from '../data/interests.js';
 
-/* Six clips crossfade across the Interests scroll. Weights are triangular so
-   adjacent clips always sum to 1 and the last lands exactly at the end. Each
-   layer sits on a phase-coloured gradient, so a missing file, an unsupported
-   codec or a slow network still leaves the right colour on screen rather than
-   black. */
-const BG_GRAD = [
-  'linear-gradient(170deg,#010206,#0A0C22 55%,#05071A)',
-  'linear-gradient(170deg,#050A1E,#101A3C 55%,#1F2154)',
-  'linear-gradient(170deg,#1A1434,#3A2250 50%,#6B3A5A)',
-  'linear-gradient(170deg,#48283E,#8C4A46 45%,#DE8C4E)',
-  'linear-gradient(170deg,#8BA6C8,#BACCE0 50%,#F2D4AE)',
-  'linear-gradient(170deg,#BBDEF2,#8FBF6A 58%,#1E4A2C)',
-];
-
-const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
-
-/** Lazily hang <source> tags on a video the first time it is actually needed. */
-function attach(v, base) {
-  if (!v || v._base === base) return;
-  v.innerHTML = '';
-  v._base = base;
-  ['webm', 'mp4'].forEach((ext) => {
-    const s = document.createElement('source');
-    s.src = `/media/${base}.${ext}`;
-    s.type = ext === 'webm' ? 'video/webm' : 'video/mp4';
-    v.appendChild(s);
-  });
-  v.load();
-}
-
-const playSafe = (v) => {
-  if (!v) return;
-  const q = v.play();
-  if (q && q.catch) q.catch(() => {});
-};
-
+/* The procedural sky, the cleared-sky fireflies and the global overlays.
+   (The Interests page used to crossfade six backdrop videos here; it now
+   paints its own scenes — see src/interests/.) */
 export default function Backdrop() {
-  const { skyClear, routeKey, setClear, features } = useApp();
+  const { skyClear, setClear, features } = useApp();
 
   const glRef = useRef(null);
   const starRef = useRef(null);
   const flyRef = useRef(null);
   const flies = useRef(null);
-  const layerRefs = useRef([]);
-  const vidRefs = useRef([]);
 
-  const routeRef = useRef(routeKey);
-  routeRef.current = routeKey;
   const stillRef = useRef(false);
   stillRef.current = features.nomotion;
 
@@ -92,76 +54,10 @@ export default function Backdrop() {
 
   useEffect(() => { flies.current?.set(skyClear); }, [skyClear]);
 
-  /* ---------------- journey crossfade ---------------- */
-  useEffect(() => {
-    const bgTick = (p) => {
-      const n = backdrops.length;
-      for (let i = 0; i < n; i++) {
-        const d = Math.abs(p * (n - 1) - i);
-        const w = Math.max(0, 1 - d);
-        const v = vidRefs.current[i];
-        if (d < 1.6) {
-          attach(v, backdrops[i]);
-          if (w > 0 && v && v.paused) playSafe(v);
-        }
-        const l = layerRefs.current[i];
-        if (l) l.style.opacity = w.toFixed(3);
-      }
-    };
-
-    const bgOff = () => {
-      layerRefs.current.forEach((l, i) => {
-        if (l) l.style.opacity = '0';
-        const v = vidRefs.current[i];
-        if (v && !v.paused) v.pause();
-      });
-    };
-
-    let wasJourney = false;
-
-    const off = onFrame(() => {
-      /* backdrop journey — Interests only */
-      if (routeRef.current === 'interests') {
-        const h = document.documentElement.scrollHeight - window.innerHeight;
-        const p = h > 0 ? clamp(window.scrollY / h, 0, 1) : 0;
-        bgTick(p);
-        document.body.classList.toggle('daylight', p > 0.58);
-        wasJourney = true;
-      } else if (wasJourney) {
-        bgOff();
-        document.body.classList.remove('daylight');
-        wasJourney = false;
-      }
-    });
-
-    return () => { off(); bgOff(); };
-  }, []);
-
   return (
     <>
       <canvas id="sky-gl" ref={glRef} aria-hidden="true" />
       <canvas id="sky-stars" ref={starRef} aria-hidden="true" />
-
-      <div id="vidstack" aria-hidden="true">
-        <div id="bgvids">
-          {backdrops.map((base, i) => (
-            <div
-              className="bglayer"
-              key={base}
-              ref={(el) => { layerRefs.current[i] = el; }}
-              style={{ background: BG_GRAD[i], opacity: 0 }}
-            >
-              <video
-                ref={(el) => { vidRefs.current[i] = el; }}
-                muted
-                loop
-                playsInline
-                preload="none"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* the cleared sky: darkness with fireflies punching light through it */}
       <canvas id="fireflies" ref={flyRef} aria-hidden="true" />

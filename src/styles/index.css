@@ -128,10 +128,6 @@ body.lightmode #grain{opacity:.22;mix-blend-mode:multiply}
   background:radial-gradient(circle 190px at var(--fx,50%) var(--fy,50%),transparent 0,rgba(3,3,10,.6) 55%,rgba(3,3,10,.98) 100%)}
 body.flash #flashlight{opacity:1}
 
-#vidstack{position:fixed;inset:0;z-index:-5;overflow:hidden;pointer-events:none}
-#bgvids{position:absolute;inset:0;transition:opacity 1.4s ease}
-.bglayer{position:absolute;inset:0;opacity:0}
-.bglayer video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
 /* idle / manual "clear the sky": the screen goes dark and fireflies drift
    through it. The canvas holds both the darkness and the holes their light
