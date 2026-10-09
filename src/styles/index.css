@@ -878,6 +878,10 @@ body.lightmode .iso-blocks a{box-shadow:-14px 14px 20px rgba(70,62,120,.22),
   translate:0 0 36px;animation:segDrift 30s ease-in-out infinite}
 .seg-face{display:flex;align-items:center;gap:10px;transform-style:preserve-3d}
 .seg-face .group{display:flex;gap:7px;transform-style:preserve-3d}
+/* Each lit face is coplanar, so it can render as one flat image instead of
+   24 separately composited 3D pieces (≈32 fewer GPU passes per frame). The
+   reflections keep their own 3D placement on .seg-stage. */
+.seg-face:not(.seg-shadow),.seg-face .group{transform-style:flat}
 .digit{position:relative;height:var(--seg-h);width:calc(var(--seg-h)/2);margin:0;
   filter:drop-shadow(0 0 5px currentColor) drop-shadow(0 0 14px currentColor)}
 .digit span{--act:0;--sx:1;--sy:1;position:absolute;background:var(--seg-ink);
