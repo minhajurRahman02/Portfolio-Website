@@ -38,15 +38,22 @@ function Group({ value }) {
   );
 }
 
-/** One copy of the display: the lit one, or one of the two reflections. */
+/** One copy of the display: the lit one, or one of the two reflections.
+    The glow/mask live on an inner wrapper and the blur on the outer one on
+    purpose — CSS applies an element's own mask after its own filter, so a
+    mask sitting on the SAME element as the blur crops the already-soft glow
+    into a hard edge. Putting blur one level further out lets it smooth over
+    the inner mask's edge instead of being cut by it. */
 function Face({ h, m, s, cls }) {
   return (
     <div className={`seg-face ${cls}`} aria-hidden={cls ? 'true' : undefined}>
-      <Group value={h} />
-      <span className="colon"><i /><i /></span>
-      <Group value={m} />
-      <span className="colon"><i /><i /></span>
-      <Group value={s} />
+      <div className="seg-glow">
+        <Group value={h} />
+        <span className="colon"><i /><i /></span>
+        <Group value={m} />
+        <span className="colon"><i /><i /></span>
+        <Group value={s} />
+      </div>
     </div>
   );
 }
