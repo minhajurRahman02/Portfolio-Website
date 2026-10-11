@@ -231,6 +231,45 @@
    }
    .glass-card{border-radius:22px}
    
+   /* The contact panel is the one glass surface on the site with something
+      perpetually animating inside it (the seven-seg clock's yaw/drift + its
+      filtered reflections). backdrop-filter forces the element carrying it
+      onto its own compositor layer; when that same box is also the one
+      painting a constantly-changing child, the browser can end up re-deriving
+      that layer — blurred backdrop included — every time the child moves,
+      instead of compositing the child on top of an otherwise-static blur.
+      Moving the blur onto a static ::before behind the content, instead of on
+      the box that contains the clock, lets the backdrop sample stay settled
+      while the clock keeps animating on its own layer in front of it. Same
+      look (radius/border/tint/bevel all copied from the shared rule above),
+      cheaper under a live child. */
+   .contact-grid.slab{
+     /* without its own stacking context, the ::before's z-index:-1 would sink
+        below the page background instead of just behind this panel's content */
+     isolation:isolate;
+     background:transparent;
+     border:0;
+     backdrop-filter:none;
+     -webkit-backdrop-filter:none;
+     box-shadow:none;
+   }
+   .contact-grid.slab::before{
+     content:"";
+     position:absolute;
+     inset:0;
+     z-index:-1;
+     border-radius:inherit;
+     background:var(--lens-tint);
+     border:1px solid var(--glass-brd);
+     backdrop-filter:var(--glass-blur);
+     -webkit-backdrop-filter:var(--glass-blur);
+     box-shadow:
+       inset 1px 1px 0 -0.5px var(--lens-hi),
+       inset -1px -1px 0 -0.5px var(--lens-hi-2),
+       inset 0 0 1px var(--lens-rim),
+       var(--card-sh);
+   }
+   
    /* Tint is per-context. The refraction is identical everywhere; what changes
       is how much of the backdrop is allowed through, and that has to depend on
       what is behind the panel. Over the dark procedural sky a few percent is
@@ -848,14 +887,15 @@
       almost invisible. */
    .seg-stage{position:relative;transform-style:preserve-3d;color:var(--seg-on);
      translate:0 0 36px;animation:segDrift 30s ease-in-out infinite}
-   .seg-face{display:flex;align-items:center;gap:10px;transform-style:preserve-3d}
-   .seg-face .group{display:flex;gap:7px;transform-style:preserve-3d}
-   /* Each lit face is coplanar, so it can render as one flat image instead of
-      24 separately composited 3D pieces (≈32 fewer GPU passes per frame). The
-      reflections keep their own 3D placement on .seg-stage. */
-   .seg-face:not(.seg-shadow),.seg-face .group{transform-style:flat}
-   .digit{position:relative;height:var(--seg-h);width:calc(var(--seg-h)/2);margin:0;
-     filter:drop-shadow(0 0 5px currentColor) drop-shadow(0 0 14px currentColor)}
+   .seg-face{display:flex;align-items:center;gap:10px;transform-style:flat}
+   .seg-face .group{display:flex;gap:7px;transform-style:flat}
+   /* Every face — the lit display and both reflections — is coplanar, so each
+      one composites as a single flat image instead of a tree of individually
+      3D-placed pieces (≈32 fewer GPU passes per frame). The reflections' own
+      tilt still comes from .seg-shadow's rotateX below; that's a transform on
+      the whole face, not on its children, so flattening the children costs
+      nothing visually. */
+   .digit{position:relative;height:var(--seg-h);width:calc(var(--seg-h)/2);margin:0}
    .digit span{--act:0;--sx:1;--sy:1;position:absolute;background:var(--seg-ink);
      opacity:calc(.04 + .96*var(--act));transform:scale(var(--sx),var(--sy));
      transition:opacity .3s cubic-bezier(.17,.67,.5,1.15)}
@@ -881,20 +921,29 @@
    .digit[data-digit="8"]>*{--act:1}
    .digit[data-digit="9"] :not(.bottom.left){--act:1}
    .colon{display:flex;flex-direction:column;justify-content:space-evenly;align-items:center;
-     height:var(--seg-h);width:calc(var(--seg-h)/5);
-     filter:drop-shadow(0 0 5px currentColor) drop-shadow(0 0 14px currentColor)}
+     height:var(--seg-h);width:calc(var(--seg-h)/5)}
    .colon i{display:block;width:calc(var(--seg-h)/9);aspect-ratio:1;background:var(--seg-ink);border-radius:50%}
    
+   /* The glow used to be declared on every .digit and .colon separately — 8
+      elements each paying for two drop-shadow passes, ×3 faces (lit + two
+      reflections) ≈ 48 blur operations a frame for a display that only
+      changes once a second. Now it's one filter on the whole (already flat)
+      face: the glow blends between adjacent digits instead of ringing each
+      one individually, which reads the same at this size and costs a fraction
+      as much. */
+   .seg-face:not(.seg-shadow){filter:drop-shadow(0 0 5px currentColor) drop-shadow(0 0 14px currentColor)}
+   
    /* The reflections: the display laid flat into the floor. One is a wide soft
-      pool of light, the other a tighter mirror image that fades with distance. */
+      pool of light, the other a tighter mirror image that fades with distance.
+      The fade mask also moved from per-digit to per-face — a vertical gradient
+      over 8 identically-aligned elements is pixel-identical to the same
+      gradient over their shared bounding box, for one mask instead of eight. */
    .seg-shadow{position:absolute;top:0;left:0;transform-origin:bottom center;
      transform:translateY(5px) translateZ(2px) rotateX(-90.1deg);pointer-events:none}
-   .seg-shadow1{opacity:.55;filter:drop-shadow(0 0 6px currentColor) drop-shadow(0 0 16px currentColor) blur(18px)}
-   .seg-shadow1 .digit,.seg-shadow1 .colon{
+   .seg-shadow1{opacity:.55;filter:drop-shadow(0 0 6px currentColor) drop-shadow(0 0 16px currentColor) blur(10px);
      -webkit-mask-image:linear-gradient(to bottom,#fff,rgba(0,0,0,.35));
      mask-image:linear-gradient(to bottom,#fff,rgba(0,0,0,.35))}
-   .seg-shadow2{opacity:.4;filter:drop-shadow(0 0 5px currentColor) blur(2.5px)}
-   .seg-shadow2 .digit,.seg-shadow2 .colon{
+   .seg-shadow2{opacity:.4;filter:drop-shadow(0 0 5px currentColor) blur(2.5px);
      -webkit-mask-image:linear-gradient(to top,#000,rgba(0,0,0,.1) 55%,transparent);
      mask-image:linear-gradient(to top,#000,rgba(0,0,0,.1) 55%,transparent)}
    /* above the display: the reflection pools exactly where a caption under it
@@ -913,6 +962,14 @@
      100%{translate:0 0 36px}}
    body.lightmode .segclock{--seg-ink:#0B6E86;--seg-on:#17A2C4}
    body.nomotion .seg-rot,body.nomotion .seg-stage{animation:none}
+   /* paused by SevenSegClock.jsx's IntersectionObserver the moment the clock
+      scrolls out of view — the yaw/drift loop is the single most expensive
+      thing this component does (3D transform + a tree of drop-shadow filters),
+      and none of that needs to run while nobody can see it */
+   .segclock.seg-paused .seg-rot,.segclock.seg-paused .seg-stage{animation-play-state:paused}
+   /* keeps the clock's own repaint/filter work from spilling into a layout or
+      paint pass on the rest of the (glass) panel it sits in */
+   .segclock{contain:layout paint}
    
    /* Off-screen pause (src/lib/offscreen.js): decorative loops stop while they
       cannot be seen and resume where they left off. The heading's entrance

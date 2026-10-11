@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { profile } from '../data/site.js';
 
 /* ================= seven-segment clock =================
@@ -53,6 +53,25 @@ function Face({ h, m, s, cls }) {
 
 export default function SevenSegClock() {
   const [t, setT] = useState(() => ({ h: 0, m: 0, s: 0 }));
+  const [visible, setVisible] = useState(true);
+  const host = useRef(null);
+
+  /* The yaw/drift wobble is a decorative 3D animation running on an element
+     tree full of drop-shadow filters and blur()'d reflections — the single
+     most expensive thing this component does, every frame, forever. None of
+     that is paid for while the clock has scrolled out of view, so pause the
+     animation (and, with it, the filter/compositing work) the moment it's
+     not on screen, and resume it the moment it is. */
+  useEffect(() => {
+    const el = host.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting),
+      { rootMargin: '64px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
     /* Built once: constructing an Intl formatter is expensive, and the old
@@ -87,7 +106,12 @@ export default function SevenSegClock() {
   }, []);
 
   return (
-    <div className="segclock" role="img" aria-label={`Dhaka time ${String(t.h).padStart(2, '0')}:${String(t.m).padStart(2, '0')}`}>
+    <div
+      className={`segclock${visible ? '' : ' seg-paused'}`}
+      ref={host}
+      role="img"
+      aria-label={`Dhaka time ${String(t.h).padStart(2, '0')}:${String(t.m).padStart(2, '0')}`}
+    >
       {/* Two nested wrappers on purpose. The reference puts a slow yaw on one
           element and a drift on another with a different period, so the two
           never line up and the whole thing reads as a camera that will not
