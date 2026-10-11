@@ -15,12 +15,20 @@ export default function Carousel({ onPick }) {
   const target = useRef(0);
   const radius = useRef(280);
   const raf = useRef(0);
+  const moveRaf = useRef(0);
+  const lastIdx = useRef(0);
   const [name, setName] = useState(interests[0].title);
 
   const STEP = 360 / interests.length;
 
   const render = useCallback(() => {
-    panels.current.filter(Boolean).forEach((p, i) => {
+    const list = panels.current;
+    // plain for-loop over refs directly — dragging used to run this through
+    // a fresh .filter(Boolean) array on every single native pointermove,
+    // which is the kind of per-frame allocation that adds up on 9 panels
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i];
+      if (!p) continue;
       const a = i * STEP + angle.current;
       // pull the whole ring back by its radius so the front panel sits at z = 0
       // and renders at its real size; without this, nine panels make a big
@@ -30,11 +38,29 @@ export default function Carousel({ onPick }) {
       const norm = ((a % 360) + 360) % 360;
       // panels on the far side must not swallow clicks meant for the front
       p.classList.toggle('far', !(norm < 40 || norm > 320));
-    });
+    }
     const n = interests.length;
     const idx = ((Math.round(-angle.current / STEP) % n) + n) % n;
-    setName(interests[idx].title);
+    // only touch React state when the shown name actually changes, so a
+    // drag doesn't re-render the component on every pointer sample
+    if (idx !== lastIdx.current) {
+      lastIdx.current = idx;
+      setName(interests[idx].title);
+    }
   }, [STEP]);
+
+  // Native pointermove can fire far faster than the screen can paint
+  // (high-poll-rate mice, touch sampling). Calling render() straight from
+  // the handler was writing transforms on 9 backdrop-filtered panels once
+  // per event instead of once per frame — this was the carousel's actual
+  // lag. Collapse every move between two paints into a single render.
+  const queueRender = useCallback(() => {
+    if (moveRaf.current) return;
+    moveRaf.current = requestAnimationFrame(() => {
+      moveRaf.current = 0;
+      render();
+    });
+  }, [render]);
 
   const animate = useCallback(() => {
     angle.current = lerp(angle.current, target.current, 0.14);
@@ -58,7 +84,11 @@ export default function Carousel({ onPick }) {
   useEffect(() => {
     layout();
     window.addEventListener('resize', layout);
-    return () => { window.removeEventListener('resize', layout); cancelAnimationFrame(raf.current); };
+    return () => {
+      window.removeEventListener('resize', layout);
+      cancelAnimationFrame(raf.current);
+      cancelAnimationFrame(moveRaf.current);
+    };
   }, [layout]);
 
   /* drag */
@@ -78,7 +108,7 @@ export default function Carousel({ onPick }) {
     moved.current = Math.abs(e.clientX - drag.current.x);
     target.current = drag.current.a + (e.clientX - drag.current.x) * 0.45;
     angle.current = target.current;
-    render();
+    queueRender();
   };
 
   const up = () => {
@@ -88,6 +118,8 @@ export default function Carousel({ onPick }) {
     const wasDrag = moved.current > 6;
     target.current = Math.round(target.current / STEP) * STEP;
     cancelAnimationFrame(raf.current);
+    cancelAnimationFrame(moveRaf.current);
+    moveRaf.current = 0;
     animate();
     if (!wasDrag && d.panel && !d.panel.classList.contains('far')) {
       onPick?.(d.panel.dataset.go);
