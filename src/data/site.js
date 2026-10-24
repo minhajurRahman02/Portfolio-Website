@@ -1,30 +1,22 @@
-/* ============================================================
-   Everything editable about the site lives in this folder.
-   Add a project, a post or an interest by adding an object —
-   no component changes required.
-   ============================================================ */
-
 export const profile = {
   name: 'MD MINHAJUR RAHMAN',
   short: 'Minhajur',
-  // TODO(minhajur): replace with your own words
   tagline:
-    'CSE at United International University. I work on making vision-language models cheaper to run, on optimisation systems for healthcare logistics, and on how people respond to manipulative AI.',
-  availability: 'Available for research collaboration',
+    'Computer Science & Engineering student at United International University specializing in Data Science. My research focuses on optimizing Machine Learning models, with an emphasis on Vision-Language Models (VLMs). As an AI and Software Engineering enthusiast, I build high-impact applications designed to solve real-world societal challenges. I bridge the gap between intelligent backend systems and intuitive user experiences by combining system architecture optimization with modern UI/UX design.',
+  availability: 'Available for any project or research collaboration',
   location: 'Dhaka, Bangladesh',
   timezone: 'Asia/Dhaka',
-  // TODO(minhajur): real addresses
-  email: 'your.email@example.com',
+  email: 'rminhajur02@gmail.com',
   // Order here is the order the isometric blocks appear in on /contact.
   // Drop an entry to remove its block; add one and give it an icon + tint in
   // src/components/SocialBlocks.jsx.
   links: [
-    { label: 'GitHub', href: '', placeholder: 'github.com/…' },
-    { label: 'LinkedIn', href: '', placeholder: 'linkedin.com/in/…' },
+    { label: 'GitHub', href: 'https://github.com/minhajurRahman02', placeholder: 'github.com/…' },
+    { label: 'LinkedIn', href: 'https://www.linkedin.com/in/md-minhajur-rahman-a6581834a?utm_source=share_via&utm_content=profile&utm_medium=member_android', placeholder: 'linkedin.com/in/…' },
     { label: 'Scholar', href: '', placeholder: 'scholar.google.com/…' },
     { label: 'X', href: '', placeholder: 'x.com/…' },
-    { label: 'Instagram', href: '', placeholder: 'instagram.com/…' },
-    { label: 'Facebook', href: '', placeholder: 'facebook.com/…' },
+    { label: 'Instagram', href: 'https://www.instagram.com/_min.haz_/', placeholder: 'instagram.com/…' },
+    { label: 'Facebook', href: 'https://www.facebook.com/minhajur.rahman.984349/', placeholder: 'facebook.com/…' },
   ],
   resume: '', // e.g. '/minhajur-rahman-cv.pdf'
 };
@@ -41,8 +33,8 @@ export const identities = [
 export const stats = [
   { value: 4, label: 'active projects' },
   { value: 2, label: 'papers in progress' },
-  { value: 32, suffix: '%', label: 'peak energy saved — EcoVLM' },
-  { value: 551, label: 'thanas mapped — RoktoNet' },
+  { value: 32, suffix: '%', label: 'peak energy saved: EcoVLM' },
+  { value: 551, label: 'thanas mapped: RoktoNet' },
 ];
 
 export const routes = [
@@ -56,22 +48,22 @@ export const routes = [
 
 export const about = {
   // TODO(minhajur): replace with your own words
-  lede: 'I am a final-year CSE student at United International University, and most of my time goes to three questions.',
+  lede: 'Building systems. Exploring intelligence. Solving real problems.',
   body: [
-    'How much energy does a vision-language model actually waste on tokens it did not need? That is EcoVLM, and the answer so far is roughly a third of it, depending on the encoder.',
-    'How should a country allocate a perishable, type-incompatible, time-critical resource like blood across hospitals that are all short at once? That is RoktoNet, and it turns out to be a mixed-integer program.',
-    'And what happens to people who are repeatedly exposed to an AI that flatters, rushes and guilt-trips them? That is the HCI study, and the uncomfortable finding is that people get better at spotting manipulation without getting better at resisting it.',
+    'I\'m a curious, analytical, and creative problem-solver driven by a simple principle: watch, learn, and evolve. My passion for computers led me to Computer Science and Engineering, where I found the opportunity to turn curiosity into practical solutions. Today, my interests lie at the intersection of software engineering and machine learning research, with a growing focus on AI, deep learning, and vision-language models.',
+    'I enjoy combining research with hands-on development to tackle real-world challenges. As the lead engineer and project manager of Roktonet, I worked on a centralized blood inventory and allocation platform for Bangladesh, including the challenge of building a blood-unit allocation engine using mixed-integer linear programming. In EcoVLM, I took on the roles of lead researcher and first author, contributing to the development of DAP (Deferred-based Adaptive Pruning), a method explored for improving the efficiency of vision-language models. Both projects reflect my interest in building systems that are not only technically sound but also meaningful in practice.',
+    'Beyond technical work, I value leadership, thoughtful decision-making, and effective teamwork. Outside the world of code and research, I enjoy travelling, video editing, photography, visual storytelling, gaming, and sports. I\'m continually refining my skills, expanding my perspective, and working toward becoming a software engineer, AI researcher, and entrepreneur who makes my journey in CSE count.',
   ],
-  photos: ['/images/portrait.jpg', '/images/portrait-b.jpg', '/images/portrait-c.jpg'],
+  photos: ['/images/portrait.jpg', '/images/portrait-b.jpg', '/images/portrait-c.jpg', '/images/portrait-d.jpg', '/images/portrait-e.jpg'],
 };
 
 export const education = [
   {
     degree: 'BSc in Computer Science & Engineering',
     school: 'United International University (UIU)',
-    note: 'Research: energy-efficient VLM inference · HCI · optimisation',
-    years: '2022 — 2026',
-    flag: 'confirm status', // TODO(minhajur): graduated or expected?
+    note: 'Research: energy-efficient VLM inference (Thesis) · Manipulative AI · Phishing Robustness · IDS · Multimodal TB Detection · Optimization',
+    years: '2022 — 2027',
+    flag: 'Expected', 
   },
   {
     degree: 'Higher Secondary Certificate',
@@ -100,23 +92,23 @@ export const skills = [
   },
   {
     title: 'Machine\nLearning',
-    items: ['PyTorch', 'Transformers', 'Scikit-learn', 'Pandas / NumPy', 'Quantisation'],
-    usedIn: ['EcoVLM', 'Phishing Robustness'],
+    items: ['PyTorch', 'Transformers', 'Scikit-learn', 'Pandas / NumPy', 'Quantization'],
+    usedIn: ['EcoVLM', 'Phishing Robustness', 'IDS', 'TB Detection'],
   },
   {
     title: 'Databases',
     items: ['PostgreSQL', 'Supabase', 'MySQL', 'MongoDB', 'Schema design'],
-    usedIn: ['RoktoNet — 8 core tables'],
+    usedIn: ['RoktoNet Database'],
   },
   {
-    title: 'Optimisation',
+    title: 'Optimization',
     items: ['MILP modelling', 'PuLP', 'CBC solver', 'Constraint design'],
     usedIn: ['RoktoNet allocation engine'],
   },
   {
     title: 'Research\nMethods',
     items: ['Experiment design', 'Statistical analysis', 'IEEE writing', 'Literature review'],
-    usedIn: ['EcoVLM', 'Wise Up or Wear Down?', 'Phishing Robustness'],
+    usedIn: ['EcoVLM', 'Wise Up or Wear Down?', 'Phishing Robustness', 'IDS', 'TB Detection'],
   },
   {
     title: 'Infrastructure',
@@ -126,7 +118,7 @@ export const skills = [
   {
     title: 'Design &\nMedia',
     items: ['Figma', 'Photoshop', 'Premiere Pro', 'After Effects'],
-    usedIn: ['Personal video work', 'Project presentations'],
+    usedIn: ['Personal & Professional video work', 'Project presentations'],
   },
 ];
 
@@ -136,7 +128,7 @@ export const posts = [
     status: 'Draft',
     minutes: 8,
     topic: 'EcoVLM',
-    title: 'Why attention variance beats attention mean — but only on single-pass encoders',
+    title: 'Why attention variance beats attention mean, but only on single-pass encoders?',
     excerpt:
       "Variance predicted token importance at AUC 0.7102 against the mean's 0.6403 on Qwen and GLM. On the multi-crop models it was neutral at best and harmful at worst. The architecture decides the criterion, and that turned out to be the whole finding.",
   },
@@ -156,6 +148,6 @@ export const posts = [
     topic: 'Optimisation',
     title: 'A blood bank is not a search problem',
     excerpt:
-      'Every donor app treats scarcity as a matching problem. It is an allocation problem — and once expiry dates and type compatibility enter the constraints, the honest formulation is a mixed-integer program, not a sorted list.',
+      'Every donor app treats scarcity as a matching problem. It is an allocation problem, and once expiry dates and type compatibility enter the constraints, the honest formulation is a mixed-integer program, not a sorted list.',
   },
 ];
