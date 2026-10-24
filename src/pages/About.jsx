@@ -24,7 +24,7 @@ export default function About() {
             <Reveal as="p" key={p.slice(0, 24)}>{p}</Reveal>
           ))}
           <p className="placeholder-note mono xs">
-            Placeholder prose — send me this in your own words and I will drop it in.
+            MD. Minhajur Rahman, CSE at United International University
           </p>
           <Reveal className="about-cta">
             <Link className="btn btn-solid" to="/contact" data-magnetic>Work with me</Link>
@@ -76,7 +76,7 @@ export default function About() {
         <div className="sect-head">
           <Cube face="05" />
           <SplitHeading text="Outside the lab" />
-          <p className="sect-note">Drag to spin · click a panel to open it.</p>
+          <p className="sect-note">Beside the technical things, I prefer focusing on various interests and hobbies.</p>
         </div>
         <Carousel onPick={(id) => navigate(`/interests#${id}`)} />
       </section>

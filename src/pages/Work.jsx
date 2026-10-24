@@ -19,7 +19,7 @@ export default function Work({ onCase }) {
         zone="research"
         letter="R"
         label="Research"
-        note="Scroll to travel sideways."
+        note="Deep dive and findings."
         onOpen={onCase}
       >
         <NeuralCanvas />

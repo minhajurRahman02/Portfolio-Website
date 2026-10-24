@@ -39,7 +39,7 @@ export default function CaseModal({ id, close }) {
           <div id="case-body">
             <h2>{item.title}</h2>
             <p className="lede">{item.sub}</p>
-            <span className="role">Role: to be confirmed — team project</span>
+            <span className="role">{item.role}</span>
             <div className="kv">
               {item.kv.map(([v, l]) => (
                 <div key={l}>

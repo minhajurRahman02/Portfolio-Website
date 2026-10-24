@@ -14,6 +14,7 @@ export const work = [
     sub: 'A diagnostic and optimisation framework for energy-efficient vision-language model inference.',
     year: '2026',
     chip: 'ICCIT submission',
+    role: 'Lead Engineer and First Author',
     tags: ['PyTorch', 'Zeus telemetry', 'Transformers', 'Kaggle T4'],
     featured: true,
     teaser:
@@ -51,6 +52,7 @@ export const work = [
     chip: 'Analysis complete',
     tags: ['HCI', 'Study design', 'Apps Script', 'Statistics'],
     featured: true,
+    role: 'Research Member',
     teaser:
       'Does repeated exposure to manipulative AI inoculate people, or wear them down? A three-session longitudinal study with a custom web testbed and a four-category manipulation taxonomy.',
     facts: [
@@ -86,6 +88,7 @@ export const work = [
     chip: 'Paper in progress',
     tags: ['DistilBERT', 'GBDT', 'Adversarial ML'],
     featured: true,
+    role: 'Research Member',
     teaser:
       'What happens to a phishing detector when attackers use homoglyphs, leetspeak and zero-width characters? DistilBERT embeddings against a handcrafted-feature fusion GBDT, under attack.',
     facts: [
@@ -112,11 +115,12 @@ export const work = [
     id: 'vlmreview',
     zone: 'research',
     num: 'R4',
-    title: 'Visual Token Pruning — Landscape',
+    title: 'Visual Token Pruning - Landscape',
     sub: 'A survey of 25 pruning methods for vision-language models, organised by signal type.',
     year: '2026',
     chip: 'Feeds EcoVLM',
     tags: ['Literature review', 'Taxonomy'],
+    role: 'Lead Researcher',
     facts: [
       ['Finding', 'Attention-based is the most saturated branch — 9 of 25'],
       ['Gap', 'Energy measured on real hardware, not FLOPs proxies'],
@@ -146,23 +150,24 @@ export const work = [
     zone: 'engineering',
     num: 'E1',
     title: 'RoktoNet',
-    sub: 'Centralised blood inventory and allocation optimisation for Bangladesh.',
+    sub: 'Centralized blood inventory and allocation optimization for Bangladesh.',
     year: '2026',
     chip: 'Live',
     live: true,
     tags: ['React', 'Flask', 'PostgreSQL', 'PuLP / CBC', 'Docker'],
     featured: true,
+    role: 'Lead Engineer and Project Manager',
     teaser:
-      'A MILP optimisation engine that decides how blood moves between hospitals and blood banks across Bangladesh — compatibility, urgency, expiry, distance and fairness as hard constraints. Not a donor-finder app.',
+      'A MILP optimization engine that decides how blood moves between hospitals and blood banks across Bangladesh — compatibility, urgency, expiry, distance and fairness as hard constraints. Not a donor-finder app.',
     facts: [
-      ['Core', 'MILP solver — urgency, expiry, distance, fairness'],
+      ['Core', 'MILP solver: urgency, expiry, distance, fairness'],
       ['Stack', 'React/Vite · Node/Express · Flask · PostgreSQL · Docker'],
-      ['Status', 'Deployed · four role dashboards complete'],
+      ['Status', 'Deployed · Fully functional features for every role'],
     ],
     kv: [
       ['8', 'core database tables'],
       ['551', 'thanas mapped'],
-      ['4', 'role dashboards shipped'],
+      ['5', 'role dashboards'],
     ],
     problem:
       'Every blood app on the market is a donor-finder — a search box over a list of people. But a hospital network short on blood does not have a search problem. It has an allocation problem: a perishable, type-incompatible, time-critical resource has to be distributed across many hospitals and banks that are all short at once.',
@@ -177,35 +182,35 @@ export const work = [
     ],
     stack: 'React · Vite · Tailwind · Node · Express · Flask · PuLP/CBC · PostgreSQL · Supabase · Docker',
   },
-  {
-    id: 'testbed',
-    zone: 'engineering',
-    num: 'E2',
-    title: 'Manipulation Testbed',
-    sub: 'The web instrument behind the HCI study — 33 trials, timed reads, auto-logging.',
-    year: '2026',
-    chip: 'Four sessions run',
-    tags: ['JavaScript', 'Apps Script', 'Sheets API'],
-    facts: [
-      ['Built', 'Trial engine, read-gate timer, attention checks'],
-      ['Pipeline', 'Apps Script → Sheets, per-session deployments'],
-      ['Status', 'Four sessions run'],
-    ],
-    kv: [
-      ['4', 'sessions deployed'],
-      ['33', 'trials per run'],
-    ],
-    problem:
-      'The study needed an instrument that could present manipulative and clean AI responses indistinguishably, capture recognition and compliance separately, and stop participants from speed-running the task.',
-    approach:
-      'A self-contained web app with a trial engine, a read-gate timer that disables the recognition controls until a minimum reading time has elapsed, embedded attention checks, and automatic logging.',
-    bullets: [
-      'Per-session deployments, since participant IDs regenerate without login',
-      'Auto-save to Google Sheets via Apps Script',
-      'A stale-build bug silently disabled the read timer; caught, fixed, and the corrected build reused',
-    ],
-    stack: 'JavaScript · HTML/CSS · Google Apps Script · Sheets API',
-  },
+  // {
+  //   id: 'testbed',
+  //   zone: 'engineering',
+  //   num: 'E2',
+  //   title: 'Manipulation Testbed',
+  //   sub: 'The web instrument behind the HCI study — 33 trials, timed reads, auto-logging.',
+  //   year: '2026',
+  //   chip: 'Four sessions run',
+  //   tags: ['JavaScript', 'Apps Script', 'Sheets API'],
+  //   facts: [
+  //     ['Built', 'Trial engine, read-gate timer, attention checks'],
+  //     ['Pipeline', 'Apps Script → Sheets, per-session deployments'],
+  //     ['Status', 'Four sessions run'],
+  //   ],
+  //   kv: [
+  //     ['4', 'sessions deployed'],
+  //     ['33', 'trials per run'],
+  //   ],
+  //   problem:
+  //     'The study needed an instrument that could present manipulative and clean AI responses indistinguishably, capture recognition and compliance separately, and stop participants from speed-running the task.',
+  //   approach:
+  //     'A self-contained web app with a trial engine, a read-gate timer that disables the recognition controls until a minimum reading time has elapsed, embedded attention checks, and automatic logging.',
+  //   bullets: [
+  //     'Per-session deployments, since participant IDs regenerate without login',
+  //     'Auto-save to Google Sheets via Apps Script',
+  //     'A stale-build bug silently disabled the read timer; caught, fixed, and the corrected build reused',
+  //   ],
+  //   stack: 'JavaScript · HTML/CSS · Google Apps Script · Sheets API',
+  // },
   {
     id: 'portfolio',
     zone: 'engineering',
@@ -215,6 +220,7 @@ export const work = [
     year: '2026',
     chip: 'In build',
     tags: ['React', 'Vite', 'Tailwind', 'GSAP', 'Lenis'],
+    role: 'Solo Project',
     facts: [
       ['Stack', 'React · Vite · Tailwind · GSAP · Lenis'],
       ['Detail', 'One WebGL context, scenes swapped per route'],

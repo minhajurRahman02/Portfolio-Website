@@ -54,7 +54,7 @@ export const about = {
     'I enjoy combining research with hands-on development to tackle real-world challenges. As the lead engineer and project manager of Roktonet, I worked on a centralized blood inventory and allocation platform for Bangladesh, including the challenge of building a blood-unit allocation engine using mixed-integer linear programming. In EcoVLM, I took on the roles of lead researcher and first author, contributing to the development of DAP (Deferred-based Adaptive Pruning), a method explored for improving the efficiency of vision-language models. Both projects reflect my interest in building systems that are not only technically sound but also meaningful in practice.',
     'Beyond technical work, I value leadership, thoughtful decision-making, and effective teamwork. Outside the world of code and research, I enjoy travelling, video editing, photography, visual storytelling, gaming, and sports. I\'m continually refining my skills, expanding my perspective, and working toward becoming a software engineer, AI researcher, and entrepreneur who makes my journey in CSE count.',
   ],
-  photos: ['/images/portrait.jpg', '/images/portrait-b.jpg', '/images/portrait-c.jpg', '/images/portrait-d.jpg', '/images/portrait-e.jpg'],
+  photos: ['/images/portrait.jpg', '/images/portrait-b.jpg', '/images/portrait-c.jpg', '/images/portrait-d.jpg', '/images/portrait-e.jpg', '/images/portrait-f.jpg'],
 };
 
 export const education = [
