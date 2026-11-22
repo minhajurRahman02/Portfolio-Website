@@ -34,6 +34,7 @@ export default function PhotoStack() {
             alt={k === 0 ? profile.name : ''}
             width="900"
             height="959"
+            decoding="async"
           />
         ))}
       </div>

@@ -65,7 +65,6 @@ export function NeuralCanvas() {
       if (!visible) return;
       if (!W) { size(); return; }
       const f = dt * 60;
-      const L = document.body.classList.contains('lightmode');
       ctx.clearRect(0, 0, W, H);
 
       nodes.forEach((p) => {
@@ -81,7 +80,7 @@ export function NeuralCanvas() {
         const b = nodes[e[1]];
         const d = Math.hypot(a.x - b.x, a.y - b.y);
         if (d > 230) return;
-        ctx.strokeStyle = `${L ? 'rgba(67,56,202,' : 'rgba(145,104,242,'}${0.32 * (1 - d / 230)})`;
+        ctx.strokeStyle = `rgba(145,104,242,${0.32 * (1 - d / 230)})`;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
@@ -96,7 +95,7 @@ export function NeuralCanvas() {
         const b = nodes[p.e[1]];
         p.t += 0.8 * dt;
         if (p.t > 1) return false;
-        ctx.fillStyle = L ? 'rgba(14,116,144,.95)' : 'rgba(47,218,240,.95)';
+        ctx.fillStyle = 'rgba(47,218,240,.95)';
         ctx.beginPath();
         ctx.arc(lerp(a.x, b.x, p.t), lerp(a.y, b.y, p.t), 2.4, 0, 6.283);
         ctx.fill();
@@ -104,7 +103,7 @@ export function NeuralCanvas() {
       });
 
       nodes.forEach((p) => {
-        ctx.fillStyle = L ? 'rgba(109,40,217,.55)' : 'rgba(176,186,255,.6)';
+        ctx.fillStyle = 'rgba(176,186,255,.6)';
         ctx.beginPath();
         ctx.arc(p.x, p.y, 1.8, 0, 6.283);
         ctx.fill();

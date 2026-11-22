@@ -8,6 +8,13 @@
   'use strict';
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+  /* echo() takes HTML, so anything the visitor typed must be escaped before
+     it goes in — otherwise `<img/src/onerror=…>` typed at the prompt runs */
+  var esc = function (s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
 
   /* ============================================================
      THE SIGNAL'S VOICE
@@ -322,6 +329,8 @@
     cmds: {}, blips: [], _sigT: null, _glitchT: 0,
 
     init: function () {
+      if (Term._inited && Term.el === $('#term')) return;
+      Term._inited = true;
       Term.el = $('#term'); Term.out = $('#term-out'); Term.input = $('#term-cmd');
       Term.radarCv = $('#radar'); Term.radarCtx = Term.radarCv.getContext('2d');
       Term.waveCv = $('#signal-wave'); Term.waveCtx = Term.waveCv.getContext('2d');
@@ -333,7 +342,7 @@
           Aud.ret();
           var raw = Term.input.value.trim(); Term.input.value = '';
           if (!raw) return;
-          Term.echo('<span class="ok">&gt;</span> ' + raw.replace(/</g, '&lt;'));
+          Term.echo('<span class="ok">&gt;</span> ' + esc(raw));
           Term.run(raw);
         } else if (e.key.length === 1 || e.key === 'Backspace') {
           Aud.key(e.key === 'Backspace');
@@ -355,9 +364,14 @@
     },
 
     register: function (name, fn) { Term.cmds[name] = fn; },
+    esc: esc,
 
     echo: function (html, cls) {
-      Term.out.innerHTML += '<div' + (cls ? ' class="' + cls + '"' : '') + '>' + html + '</div>';
+      // append one node — `innerHTML +=` re-parsed the entire log every line
+      var d = document.createElement('div');
+      if (cls) d.className = cls;
+      d.innerHTML = html;
+      Term.out.appendChild(d);
       Term.out.scrollTop = Term.out.scrollHeight;
     },
 
@@ -417,7 +431,7 @@
       }
       if (Term.cmds[c]) return Term.cmds[c](arg);
       Term.glitch(0.3);
-      Term.echo('command not found: ' + c + ' — try <span class="cm">help</span>', 'er');
+      Term.echo('command not found: ' + esc(c) + ' — try <span class="cm">help</span>', 'er');
     },
 
     /* ---- the incoming signal ----

@@ -1,7 +1,7 @@
 /* =====================================================================
    INTERESTS — styles. Scoped under .ix-* so it can sit inside the site.
-   Scenes are self-lit, so cards stay dark glass in both themes; the
-   bottom sheet follows the theme.
+   Scenes are self-lit, so cards stay dark glass; the bottom sheet is dark
+   too (the site has no light theme).
    ===================================================================== */
 :root {
   --ix-fd: var(--fd, "Bricolage Grotesque", "Arial Black", system-ui, sans-serif);
@@ -11,26 +11,9 @@
   --ix-card-fg: #F6F4FF;
   --ix-card-dim: rgba(240, 236, 255, .78);
   --ix-tint: rgba(10, 10, 24, .22);
-  --ix-sheet-bg: rgba(250, 249, 255, .8);
-  --ix-sheet-fg: #16141F;
-  --ix-sheet-dim: #57536B;
-  --ix-sheet-line: rgba(22, 20, 40, .12);
-  --ix-sheet-card: rgba(255, 255, 255, .46);
-  --ix-ph: rgba(22, 20, 40, .05);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --ix-sheet-bg: rgba(14, 13, 26, .72);
-    --ix-sheet-fg: #F3F1FA;
-    --ix-sheet-dim: #ABA6C2;
-    --ix-sheet-line: rgba(255, 255, 255, .1);
-    --ix-sheet-card: rgba(255, 255, 255, .05);
-    --ix-ph: rgba(255, 255, 255, .04);
-  }
-}
-
-:root[data-theme="dark"] {
+  /* dark-only: the sheet used to default to a light palette and only turn
+     dark under prefers-color-scheme:dark, so light-OS visitors got a white
+     sheet on a dark site */
   --ix-sheet-bg: rgba(14, 13, 26, .72);
   --ix-sheet-fg: #F3F1FA;
   --ix-sheet-dim: #ABA6C2;
@@ -1182,4 +1165,4 @@ html.ix-locked {
   .ix-reveal img {
     transition: opacity .2s;
   }
-}
+}

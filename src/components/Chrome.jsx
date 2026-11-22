@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Mark, ThemeIcon, MenuIcon, Ico } from './icons.jsx';
+import { Mark, MenuIcon, Ico } from './icons.jsx';
 import { useApp } from '../context/AppState.jsx';
 import { onFrame } from '../lib/loop.js';
 import { scrollTop } from '../lib/motion.js';
@@ -152,7 +152,6 @@ export function ScrollFlag() {
 
 /* ============================ top bar ============================ */
 export function TopBar({ onMenu }) {
-  const { toggleTheme } = useApp();
   return (
     <header id="topbar">
       <Link className="brand" to="/" data-magnetic aria-label="Home">
@@ -160,14 +159,6 @@ export function TopBar({ onMenu }) {
         <span className="brand-txt">{profile.short}</span>
       </Link>
       <div className="top-right">
-        <button
-          className="icon-btn theme-btn"
-          onClick={toggleTheme}
-          data-magnetic
-          aria-label="Switch theme"
-        >
-          <ThemeIcon />
-        </button>
         <button className="icon-btn menu-btn" onClick={onMenu} data-magnetic aria-label="Open menu">
           <MenuIcon />
         </button>
@@ -192,7 +183,6 @@ const NEAR_MARGIN = 14;  // how much nearer a challenger must be to steal the hi
 
 export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
   const inner = useRef(null);
-  const { toggleTheme } = useApp();
 
   useEffect(() => {
     const host = inner.current;
@@ -274,13 +264,25 @@ export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
         const held = near < 0 ? Infinity : Math.abs(lx - rest[near]);
         if (best < held - NEAR_MARGIN) near = cand;
       }
-      items.forEach((d, i) => d.classList.toggle('near', i === near));
+      items.forEach((d, i) => { if (d._near !== (i === near)) { d._near = i === near; d.classList.toggle('near', d._near); } });
     };
 
     measure();
-    const onMove = (e) => magnify(e.clientX, e.clientY);
+    /* The dock only ever lives in the bottom strip of the viewport, so a
+       pointer anywhere above that cannot be on it. Bailing there skips two
+       layout reads and eight class writes on every mouse move over the
+       rest of the page. */
+    let parked = true;
+    const onMove = (e) => {
+      if (!active && e.clientY < window.innerHeight - 170) {
+        if (!parked) { parked = true; onLeave(); }
+        return;
+      }
+      parked = false;
+      magnify(e.clientX, e.clientY);
+    };
     const onResize = () => measure();
-    const onLeave = () => { active = false; near = -1; items.forEach((d) => { d._t = 1; d.classList.remove('near'); }); };
+    const onLeave = () => { active = false; near = -1; items.forEach((d) => { d._t = 1; d._near = false; d.classList.remove('near'); }); };
     window.addEventListener('pointermove', onMove, { passive: true });
     window.addEventListener('resize', onResize);
     // leaving the pill's background (or the window) resets the dock at once
@@ -321,9 +323,6 @@ export function Dock({ onMenu, onFeatures, featOpen, featBtnRef }) {
           </NavLink>
         ))}
         <span className="dock-sep" />
-        <button className="dk" onClick={toggleTheme} data-tip="Theme" aria-label="Switch theme">
-          <ThemeIcon />
-        </button>
         <button
           className={`dk${featOpen ? ' on' : ''}`}
           ref={featBtnRef}

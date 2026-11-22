@@ -1,3 +1,5 @@
+import { getLenis } from './motion.js';
+
 /* Scroll lock for overlays. position:fixed on <body> rather than
    overflow:hidden, because overflow on the body would turn it into a scroll
    container and quietly break every position:sticky on the page. Depth is
@@ -10,6 +12,7 @@ export function lockScroll(on) {
   if (on) {
     if (depth++ > 0) return;
     y = window.scrollY;
+    getLenis()?.stop();
     b.classList.add('locked');
     b.style.position = 'fixed';
     b.style.top = `${-y}px`;
@@ -21,6 +24,14 @@ export function lockScroll(on) {
     b.style.position = '';
     b.style.top = '';
     b.style.width = '';
-    window.scrollTo(0, y);
+    // 'instant', explicitly: html has scroll-behavior:smooth, so a plain
+    // scrollTo(0, y) animated the page down from the top on every close
+    window.scrollTo({ top: y, left: 0, behavior: 'instant' });
+    // Lenis re-reads the native position on start(). Do not hand it y via
+    // its own scrollTo: its page-height cache still holds the locked
+    // (viewport-tall) body, so it clamps y to 0 and throws the visitor to
+    // the top.
+    const l = getLenis();
+    if (l) { l.resize?.(); l.start(); }
   }
 }

@@ -11,12 +11,12 @@ import { work } from '../data/work.js';
    the markup and wires the commands that need app state. */
 export default function TerminalPane() {
   const navigate = useNavigate();
-  const { toggleTheme, setClear, toggleFeature, setTermOpen } = useApp();
+  const { setClear, toggleFeature, setTermOpen } = useApp();
 
   const nav = useRef(navigate);
   nav.current = navigate;
-  const api = useRef({ toggleTheme, setClear, toggleFeature, setTermOpen });
-  api.current = { toggleTheme, setClear, toggleFeature, setTermOpen };
+  const api = useRef({ setClear, toggleFeature, setTermOpen });
+  api.current = { setClear, toggleFeature, setTermOpen };
 
   useEffect(() => {
     Term.init();
@@ -32,7 +32,6 @@ export default function TerminalPane() {
           '  <span class="cm">projects</span>    list projects\n' +
           '  <span class="cm">cat</span> &lt;file&gt;   read a file\n' +
           '  <span class="cm">open</span> &lt;page&gt;  navigate\n' +
-          '  <span class="cm">theme</span>       toggle light/dark\n' +
           '  <span class="cm">sky</span>         clear the sky\n' +
           '  <span class="cm">flashlight</span>  dark-room mode\n' +
           '  <span class="cm">kill</span>        drop whatever is on the channel\n' +
@@ -69,21 +68,21 @@ export default function TerminalPane() {
           'ok'
         );
       return Term.echo(
-        `cat: ${f || '(no file)'}: No such file. Try about.txt or skills.txt`,
+        `cat: ${Term.esc(f || '(no file)')}: No such file. Try about.txt or skills.txt`,
         'er'
       );
     });
 
     Term.register('open', (a) => {
       if (!pages.includes(a))
-        return Term.echo(`open: unknown page "${a || ''}". Try: ${pages.join(', ')}`, 'er');
+        return Term.echo(`open: unknown page "${Term.esc(a || '')}". Try: ${pages.join(', ')}`, 'er');
       Term.echo(`opening /${a} ...`, 'ok');
       Term.hide();
       api.current.setTermOpen(false);
       nav.current(pathOf(a));
     });
 
-    Term.register('theme', () => { api.current.toggleTheme(); Term.echo('theme switched', 'ok'); });
+    Term.register('theme', () => Term.echo('theme: this site only comes in dark.', 'dimline'));
 
     Term.register('sky', () => {
       const on = !document.body.classList.contains('skyclear');
@@ -93,7 +92,7 @@ export default function TerminalPane() {
 
     Term.register('flashlight', () => {
       api.current.toggleFeature('flash');
-      Term.echo(`flashlight ${document.body.classList.contains('flash') ? 'off' : 'on'}`, 'ok');
+      Term.echo(`flashlight ${document.body.classList.contains('flash') ? 'on' : 'off'}`, 'ok'); // the toggle is synchronous now
     });
 
     Term.register('neofetch', () => {

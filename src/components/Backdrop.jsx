@@ -64,7 +64,6 @@ export default function Backdrop() {
 
       <div id="grain" aria-hidden="true" />
       <div id="flashlight" aria-hidden="true" />
-      <div id="themewipe" aria-hidden="true" />
 
       <button id="clearhint" hidden={!skyClear} onClick={() => setClear(false)}>
         <span className="mono">press esc or click to return</span>

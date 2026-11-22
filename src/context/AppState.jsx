@@ -9,17 +9,7 @@ export const useApp = () => useContext(Ctx);
 
 const IDLE_MS = 60000;
 
-function effectiveLight() {
-  const a = document.documentElement.getAttribute('data-theme');
-  if (a === 'light') return true;
-  if (a === 'dark') return false;
-  return window.matchMedia('(prefers-color-scheme: light)').matches;
-}
-
 export function AppState({ children }) {
-  const [isLight, setIsLight] = useState(() =>
-    typeof window === 'undefined' ? false : effectiveLight()
-  );
   const [skyClear, setSkyClear] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [features, setFeatures] = useState({ flash: false, audio: false, nomotion: false });
@@ -32,39 +22,9 @@ export function AppState({ children }) {
   const routeRef = useRef('home');
   routeRef.current = routeKey;
 
-  /* ---------------- theme ---------------- */
-  const syncTheme = useCallback(() => {
-    const light = effectiveLight();
-    setIsLight(light);
-    document.body.classList.toggle('lightmode', light);
-    Sky.setTheme(light);
-  }, []);
-
-  useEffect(() => {
-    syncTheme();
-    const mq = window.matchMedia('(prefers-color-scheme: light)');
-    const h = () => syncTheme();
-    mq.addEventListener('change', h);
-    return () => mq.removeEventListener('change', h);
-  }, [syncTheme]);
-
-  const toggleTheme = useCallback(
-    (ev) => {
-      document.documentElement.setAttribute('data-theme', effectiveLight() ? 'dark' : 'light');
-      const w = document.getElementById('themewipe');
-      if (w) {
-        const x = ev?.clientX ?? window.innerWidth - 60;
-        const y = ev?.clientY ?? 40;
-        w.style.setProperty('--wx', `${(x / window.innerWidth) * 100}%`);
-        w.style.setProperty('--wy', `${(y / window.innerHeight) * 100}%`);
-        w.classList.remove('go');
-        void w.offsetWidth;
-        w.classList.add('go');
-      }
-      syncTheme();
-    },
-    [syncTheme]
-  );
+  /* ---------------- theme ----------------
+     Dark only. index.html pins data-theme="dark" and color-scheme:dark on
+     <html>, so neither the OS nor the browser can switch the palette. */
 
   /* ---------------- toast ---------------- */
   const toast = useCallback((msg) => {
@@ -108,31 +68,35 @@ export function AppState({ children }) {
     };
   }, [kickIdle]);
 
-  /* ---------------- features ---------------- */
+  /* ---------------- features ----------------
+     Side effects run outside the state updater: React may call an updater
+     twice (StrictMode does in dev), which toggled the flashlight/audio class
+     straight back off again. */
+  const featRef = useRef(features);
+  featRef.current = features;
+
   const toggleFeature = useCallback(
     (key) => {
-      setFeatures((f) => {
-        const next = { ...f, [key]: !f[key] };
-        if (key === 'flash') document.body.classList.toggle('flash', next.flash);
-        if (key === 'nomotion') {
-          document.body.classList.toggle('nomotion', next.nomotion);
-          setSmoothScroll(!next.nomotion && !prefersReducedMotion());
-          toast(next.nomotion ? 'Motion reduced' : 'Motion restored');
-        }
-        if (key === 'audio') {
-          Aud.unlock();
-          Aud.drone(next.audio);
-          toast(next.audio ? 'Ambient audio on' : 'Ambient audio off');
-        }
-        return next;
-      });
+      const next = { ...featRef.current, [key]: !featRef.current[key] };
+      featRef.current = next;
+      setFeatures(next);
+      if (key === 'flash') document.body.classList.toggle('flash', next.flash);
+      if (key === 'nomotion') {
+        document.body.classList.toggle('nomotion', next.nomotion);
+        setSmoothScroll(!next.nomotion && !prefersReducedMotion());
+        toast(next.nomotion ? 'Motion reduced' : 'Motion restored');
+      }
+      if (key === 'audio') {
+        Aud.unlock();
+        Aud.drone(next.audio);
+        toast(next.audio ? 'Ambient audio on' : 'Ambient audio off');
+      }
     },
     [toast]
   );
 
   const value = useMemo(
     () => ({
-      isLight, toggleTheme,
       skyClear, setClear,
       toast, toastMsg,
       features, toggleFeature,
@@ -140,7 +104,7 @@ export function AppState({ children }) {
       routeKey, setRouteKey,
       kickIdle,
     }),
-    [isLight, toggleTheme, skyClear, setClear, toast, toastMsg, features, toggleFeature, termOpen, routeKey, kickIdle]
+    [skyClear, setClear, toast, toastMsg, features, toggleFeature, termOpen, routeKey, kickIdle]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

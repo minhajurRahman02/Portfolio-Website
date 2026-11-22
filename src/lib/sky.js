@@ -25,9 +25,7 @@
     // still has to read as smoke
     dark: P('#06060F', '#18214C', '#3B2E74', '#115A6E', '#CFE4FF', 1.0, 1.0),
     // the cleared sky — almost no smoke, deep black, everything visible
-    clear: P('#010208', '#05071A', '#0B0A24', '#041420', '#E6F2FF', 0.16, 1.0),
-    light: P('#EDF0F9', '#C5D0F2', '#FBD3B8', '#BCE3F0', '#7A86B8', 0.95, 0.0),
-    lightClear: P('#E6EBF7', '#B6C3EC', '#F6DCC6', '#AFDAEB', '#5E6B9E', 0.34, 0.25)
+    clear: P('#010208', '#05071A', '#0B0A24', '#041420', '#E6F2FF', 0.16, 1.0)
   };
 
   // /interests scroll journey: deep space -> dawn -> noon
@@ -78,9 +76,22 @@
     c3: PAL.dark.c3.slice(), star: PAL.dark.star.slice(), smoke: 1, stars: 1
   };
   var tgt = PAL.dark;
-  var light = false, clearAmt = 0, clearTgt = 0, journey = null;
+  var clearAmt = 0, clearTgt = 0, journey = null;
   var vel = 0, mx = 0.5, my = 0.5, mxC = 0.5, myC = 0.5, scrollY = 0;
   var W = 0, H = 0, DPR = 1;
+
+  /* The nebula is low-frequency smoke: its finest octave spans ~20 CSS px,
+     so shading it at half the CSS resolution and letting the compositor
+     upscale it is visually the same picture for a fraction of the cost.
+     It used to shade every DEVICE pixel (up to 1.75x DPR) — on a hi-DPI
+     laptop that was ~12x more fragment work than this, every frame, and it
+     was the main thing standing between the site and 60fps.
+     If frames still run long (weak GPU, 4K screen) it steps down: a lower
+     scale, then the smoke redrawn every other frame (it drifts slowly
+     enough that 30 updates a second read the same). It never steps back
+     up, so it cannot oscillate. */
+  var GL_STEPS = [{ k: 0.5, every: 1 }, { k: 0.4, every: 1 }, { k: 0.4, every: 2 }, { k: 0.32, every: 2 }];
+  var glStep = 0, slowT = 0, frameAvg = 16.7, glFrame = 0;
   var hidden = 0, hiddenTgt = 0;          // 1 = sky fully handed over (Interests)
   var lastOp = '';
   var px = -9999, py = -9999;             // cursor, in CSS pixels
@@ -117,17 +128,32 @@
 
   function size() {
     W = innerWidth; H = innerHeight;
-    DPR = Math.min(devicePixelRatio || 1, 1.75);
-    if (ok) {
-      cv.width = Math.floor(W * DPR); cv.height = Math.floor(H * DPR);
-      gl.viewport(0, 0, cv.width, cv.height);
-      gl.uniform2f(U.u_res, cv.width, cv.height);
-    }
+    // stars are hard points and keep a real device-pixel backing (capped)
+    DPR = Math.min(devicePixelRatio || 1, 1.5);
+    sizeGL();
     if (sCtx) {
       sCv.width = Math.floor(W * DPR); sCv.height = Math.floor(H * DPR);
       sCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
     }
     buildField();
+  }
+
+  function sizeGL() {
+    if (!ok) return;
+    var k = GL_STEPS[glStep].k;
+    cv.width = Math.max(1, Math.ceil(W * k)); cv.height = Math.max(1, Math.ceil(H * k));
+    gl.viewport(0, 0, cv.width, cv.height);
+    gl.uniform2f(U.u_res, cv.width, cv.height);
+  }
+
+  /* frame-time watchdog: ~2s of sustained long frames drops one step */
+  function watch(dt) {
+    // dt arrives capped at 0.12s by the loop, and the average moves 5% a
+    // frame, so one hiccup (a tab switch) cannot trip it on its own
+    if (glStep >= GL_STEPS.length - 1 || dt <= 0) return;
+    frameAvg += (dt * 1000 - frameAvg) * 0.05;
+    slowT = frameAvg > 21 ? slowT + dt : 0;
+    if (slowT > 2) { glStep++; slowT = 0; frameAvg = 16.7; sizeGL(); }
   }
 
   function initGL(canvas) {
@@ -173,8 +199,10 @@
     var vis = cur.stars;
     if (vis <= 0.004 && clearAmt < 0.01) return;
 
-    // parallax from page scroll
-    var py = scrollY;
+    // parallax from page scroll. (This was `var py`, which shadowed the
+    // cursor's py below, so the stars were pulled toward the scroll offset
+    // instead of the pointer.)
+    var sy = scrollY;
 
     // galaxy + planets only once the sky starts clearing
     if (clearAmt > 0.02) {
@@ -185,12 +213,13 @@
     var PR = 260, PR2 = PR * PR;              // cursor pull radius
     var kPull = 1 - Math.pow(0.0015, dt / 0.6);
     var col = 'rgb(' + (cur.star[0] * 255 | 0) + ',' + (cur.star[1] * 255 | 0) + ',' + (cur.star[2] * 255 | 0) + ')';
+    sCtx.fillStyle = col;
 
     for (var i = 0; i < stars.length; i++) {
       var s = stars[i];
       // before clearing only the brightest ~45% show
       if (s.base >= 0.45 + 0.55 * clearAmt) continue;
-      var y = (s.y - (py * (0.02 + s.z * 0.07)) / H) % 1;
+      var y = (s.y - (sy * (0.02 + s.z * 0.07)) / H) % 1;
       if (y < 0) y += 1;
       var bx = s.x * W, by = y * H;
 
@@ -211,8 +240,10 @@
       if (a <= 0.012) continue;
       var r = s.r * (1 + clearAmt * 0.45) * (0.6 + s.z * 0.8);
       sCtx.globalAlpha = Math.min(a, 1);
-      sCtx.fillStyle = col;
-      sCtx.beginPath(); sCtx.arc(bx, by, r, 0, 6.283); sCtx.fill();
+      // below ~2px across a square and a disc rasterise the same, and a
+      // rect skips the path build — most of the field is this small
+      if (r < 1.05) sCtx.fillRect(bx - r, by - r, r * 2, r * 2);
+      else { sCtx.beginPath(); sCtx.arc(bx, by, r, 0, 6.283); sCtx.fill(); }
       // a few get a cross flare once the sky is clear
       if (clearAmt > 0.5 && s.z > 0.93) {
         sCtx.globalAlpha = a * 0.4 * clearAmt;
@@ -314,10 +345,6 @@
       size();
       addEventListener('resize', size);
     },
-    setTheme: function (isLight) {
-      light = isLight;
-      Sky._retarget();
-    },
     setClear: function (v) { clearTgt = clamp(v, 0, 1); },
     clearAmount: function () { return clearAmt; },
     setJourney: function (p) { journey = p; Sky._retarget(); },
@@ -342,8 +369,8 @@
           smoke: lerp(a.smoke, b.smoke, k), stars: lerp(a.stars, b.stars, k)
         };
       } else {
-        var base = light ? PAL.light : PAL.dark;
-        var cl = light ? PAL.lightClear : PAL.clear;
+        var base = PAL.dark;
+        var cl = PAL.clear;
         tgt = {
           bg: mixArr(base.bg, cl.bg, clearAmt, [0, 0, 0]),
           c1: mixArr(base.c1, cl.c1, clearAmt, [0, 0, 0]),
@@ -367,6 +394,7 @@
         if (sCv) sCv.style.opacity = op;
       }
       if (hidden > 0.985) return;               // another layer owns the screen
+      if (!frozen) watch(dt);
 
       var kSlow = 1 - Math.pow(0.0015, dt / 1.1);
       var kClear = 1 - Math.pow(0.0015, dt / 2.6);
@@ -383,19 +411,16 @@
       cur.smoke = lerp(cur.smoke, tgt.smoke, kSlow);
       cur.stars = lerp(cur.stars, tgt.stars, kSlow);
 
-      if (ok) {
+      if (ok && (++glFrame % GL_STEPS[glStep].every === 0)) {
         gl.uniform1f(U.u_time, frozen ? 12.0 : t);
         gl.uniform2f(U.u_mouse, mxC, myC);
         gl.uniform1f(U.u_amp, clamp(Math.abs(vel) / 26, 0, 1.3));
         gl.uniform1f(U.u_smoke, cur.smoke);
         // as the journey reaches daylight, back off the vignette and the
         // horizon shading — both read as grime on a bright sky
-        // A vignette that reads as depth on a night sky reads as dirt on a
-        // bright one, so it eases off for daylight and for light mode.
         var day = journey != null ? clamp((journey - 0.42) / 0.58, 0, 1) : 0;
-        var base = light ? 0.42 : 1;
-        gl.uniform1f(U.u_horizon, journey != null ? 0.85 * (1 - day * 0.8) : base);
-        gl.uniform1f(U.u_vig, journey != null ? 1 - day * 0.85 : base);
+        gl.uniform1f(U.u_horizon, journey != null ? 0.85 * (1 - day * 0.8) : 1);
+        gl.uniform1f(U.u_vig, journey != null ? 1 - day * 0.85 : 1);
         gl.uniform3fv(U.cbg, cur.bg); gl.uniform3fv(U.c1, cur.c1);
         gl.uniform3fv(U.c2, cur.c2); gl.uniform3fv(U.c3, cur.c3);
         gl.drawArrays(gl.TRIANGLES, 0, 3);

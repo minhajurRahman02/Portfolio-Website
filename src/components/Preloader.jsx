@@ -16,6 +16,11 @@ export default function Preloader({ onDone }) {
   const [pct, setPct] = useState(0);
   const [done, setDone] = useState(false);
   const fired = useRef(false);
+  /* App passes a fresh arrow on every render. As an effect dependency that
+     restarted the whole count (and its 2.5s ceiling) whenever App re-rendered
+     during boot, so it is read through a ref instead. */
+  const doneRef = useRef(onDone);
+  doneRef.current = onDone;
 
   useEffect(() => {
     document.body.classList.add('loading');
@@ -46,7 +51,12 @@ export default function Preloader({ onDone }) {
         setTimeout(() => {
           setDone(true);
           document.body.classList.remove('loading');
-          if (!fired.current) { fired.current = true; onDone?.(); }
+          /* Unmount only once the curtains have parted (.curtain transition
+             is .85s). Calling onDone in the same tick as setDone removed the
+             preloader before .done ever painted, so the reveal never played. */
+          setTimeout(() => {
+            if (!fired.current) { fired.current = true; doneRef.current?.(); }
+          }, 900);
         }, 320);
       }
     }, 40);
@@ -55,7 +65,7 @@ export default function Preloader({ onDone }) {
       clearInterval(iv);
       document.body.classList.remove('loading');
     };
-  }, [onDone]);
+  }, []);
 
   return (
     <div id="preloader" className={done ? 'done' : ''}>

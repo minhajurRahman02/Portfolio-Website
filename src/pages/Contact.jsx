@@ -78,35 +78,35 @@ export default function Contact() {
         </p>
       </div>
 
-      {/* the second neumorphic zone — the controls you actually press */}
-      <div className="contact-grid slab" data-zone="panel">
+      {/* same glass card as the home page; the clock is the only live thing in it */}
+      <div className="contact-grid glass-card" data-zone="glass">
         <form className="cform" ref={form} onSubmit={submit} noValidate>
           <div className="fld">
             <label htmlFor="f-name">Name</label>
             <input
-              id="f-name" name="name" type="text" autoComplete="name" required
-              className={`neu-in${bad.name ? ' bad' : ''}`}
+              id="f-name" name="name" type="text" autoComplete="name" required maxLength={120}
+              className={`field${bad.name ? ' bad' : ''}`}
             />
           </div>
           <div className="fld">
             <label htmlFor="f-mail">Email</label>
             <input
-              id="f-mail" name="email" type="email" autoComplete="email" required
-              className={`neu-in${bad.email ? ' bad' : ''}`}
+              id="f-mail" name="email" type="email" autoComplete="email" required maxLength={180}
+              className={`field${bad.email ? ' bad' : ''}`}
             />
           </div>
           <div className="fld">
             <label htmlFor="f-msg">Message</label>
             <textarea
-              id="f-msg" name="message" rows="5" required
-              className={`neu-in${bad.message ? ' bad' : ''}`}
+              id="f-msg" name="message" rows="5" required maxLength={5000}
+              className={`field${bad.message ? ' bad' : ''}`}
             />
           </div>
           <input
             type="text" name="company" className="hp" tabIndex={-1}
             autoComplete="off" aria-hidden="true"
           />
-          <button type="submit" className="neu-btn" data-magnetic disabled={sending}>
+          <button type="submit" className="btn btn-solid" data-magnetic disabled={sending}>
             {sending ? 'Sending…' : 'Send message'}
           </button>
           <p className="form-note mono xs dim">
@@ -120,8 +120,8 @@ export default function Contact() {
             The form reaches me fastest. Everything else is below.
           </p>
           {profile.resume
-            ? <a className="btn btn-ghost" href={profile.resume} download>Download résumé</a>
-            : <button className="btn btn-ghost" type="button" onClick={() => toast('Résumé PDF not supplied yet')}>Résumé</button>}
+            ? <a className="btn btn-ghost" href={profile.resume} download data-magnetic>Download résumé</a>
+            : <button className="btn btn-ghost" type="button" data-magnetic onClick={() => toast('Résumé PDF not supplied yet')}>Résumé</button>}
           <SevenSegClock />
         </aside>
       </div>

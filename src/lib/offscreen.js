@@ -7,7 +7,7 @@
 
    One IntersectionObserver for the whole app; a MutationObserver picks up
    elements as routes mount and drops them as they unmount. */
-const SEL = '.split, .segclock, .n-ext, .pf-ring, .caret';
+const SEL = '.split, .n-ext, .pf-ring, .caret';
 
 export function startOffscreenPause(root = document.body) {
   if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return () => {};

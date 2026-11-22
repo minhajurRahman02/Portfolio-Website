@@ -1,5 +1,3 @@
-import { useId } from 'react';
-
 /* The monogram: an orbital ring crossing a circle, with one node on it.
    Abstract on purpose — no letters. */
 export function Mark({ className = 'mark' }) {
@@ -8,26 +6,6 @@ export function Mark({ className = 'mark' }) {
       <circle className="m-orbit" cx="50" cy="50" r="34" />
       <ellipse className="m-ring" cx="50" cy="50" rx="46" ry="19" transform="rotate(-32 50 50)" />
       <circle className="m-node" cx="50" cy="16" r="5.5" />
-    </svg>
-  );
-}
-
-/** Sun that a mask bites into to become a moon. The mask id must be unique
-    per instance or the second copy inherits the first one's geometry. */
-export function ThemeIcon() {
-  const id = useId().replace(/[:]/g, '');
-  return (
-    <svg viewBox="0 0 24 24" className="th-ico">
-      <defs>
-        <mask id={id}>
-          <rect width="24" height="24" fill="#fff" />
-          <circle className="th-bite" cx="19" cy="6" r="7.2" fill="#000" />
-        </mask>
-      </defs>
-      <circle cx="12" cy="12" r="7" mask={`url(#${id})`} />
-      <g className="th-rays">
-        <path d="M12 1v2M12 21v2M23 12h-2M3 12H1M19.8 4.2l-1.4 1.4M5.6 18.4l-1.4 1.4M19.8 19.8l-1.4-1.4M5.6 5.6 4.2 4.2" />
-      </g>
     </svg>
   );
 }

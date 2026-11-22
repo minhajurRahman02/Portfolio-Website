@@ -20,6 +20,36 @@ function tooMany(ip) {
   return list.length > MAX;
 }
 
+/* Only this site's own pages may post here. A browser always sends Origin on
+   a cross-site POST, so a page on another domain (or a bare script that
+   omits it) cannot use this endpoint to spam the inbox. Extra origins — a
+   custom domain behind a proxy, say — can be listed in ALLOWED_ORIGINS,
+   comma-separated. */
+function originAllowed(req) {
+  const origin = req.headers.origin;
+  if (!origin) return false;
+  let host;
+  try { host = new URL(origin).host; } catch { return false; }
+  const self = (req.headers['x-forwarded-host'] || req.headers.host || '').toString();
+  if (host === self) return true;
+  const extra = (process.env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
+  return extra.includes(origin);
+}
+
+/* Vercel sets these itself and overwrites anything the client sent, unlike
+   the first hop of x-forwarded-for, which a client can pre-fill. */
+function clientIp(req) {
+  const h = req.headers;
+  return (
+    (h['x-vercel-forwarded-for'] || h['x-real-ip'] || h['x-forwarded-for'] || '')
+      .toString().split(',')[0].trim() ||
+    req.socket?.remoteAddress ||
+    'unknown'
+  );
+}
+
+const MAX_BYTES = 16 * 1024;
+
 const clean = (s, max) => String(s ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -28,6 +58,14 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!originAllowed(req)) return res.status(403).json({ error: 'Forbidden' });
+  if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) {
+    return res.status(415).json({ error: 'Expected JSON' });
+  }
+  if (Number(req.headers['content-length'] || 0) > MAX_BYTES) {
+    return res.status(413).json({ error: 'Message is too long' });
   }
 
   const key = process.env.BREVO_API_KEY;
@@ -54,10 +92,7 @@ export default async function handler(req, res) {
   if (!MAIL.test(email)) return res.status(400).json({ error: 'That email address looks wrong' });
   if (message.length < 6) return res.status(400).json({ error: 'Message is too short' });
 
-  const ip =
-    (req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim() ||
-    req.socket?.remoteAddress ||
-    'unknown';
+  const ip = clientIp(req);
   if (tooMany(ip)) return res.status(429).json({ error: 'Too many messages — try again later' });
 
   const payload = {

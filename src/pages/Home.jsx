@@ -46,17 +46,29 @@ function Typewriter() {
 function Name3D() {
   const el = useRef(null);
   useEffect(() => {
-    const onMove = (e) => {
+    /* One measurement and one write per frame, however fast the pointer
+       reports. Reading the rect straight from every pointermove forced a
+       style/layout flush on top of whatever else had just written styles. */
+    let px = 0;
+    let py = 0;
+    let raf = 0;
+    const apply = () => {
+      raf = 0;
       const n = el.current;
       if (!n || document.body.classList.contains('nomotion')) return;
       const r = n.getBoundingClientRect();
       if (r.bottom < 0 || r.top > window.innerHeight) return;
-      const dx = (e.clientX - (r.left + r.width / 2)) / r.width;
-      const dy = (e.clientY - (r.top + r.height / 2)) / r.height;
-      n.style.transform = `perspective(900px) rotateX(${clamp(-dy * 9, -11, 11)}deg) rotateY(${clamp(dx * 13, -16, 16)}deg)`;
+      const dx = (px - (r.left + r.width / 2)) / r.width;
+      const dy = (py - (r.top + r.height / 2)) / r.height;
+      n.style.transform = `perspective(900px) rotateX(${clamp(-dy * 9, -11, 11).toFixed(2)}deg) rotateY(${clamp(dx * 13, -16, 16).toFixed(2)}deg)`;
+    };
+    const onMove = (e) => {
+      px = e.clientX;
+      py = e.clientY;
+      if (!raf) raf = requestAnimationFrame(apply);
     };
     window.addEventListener('pointermove', onMove, { passive: true });
-    return () => window.removeEventListener('pointermove', onMove);
+    return () => { window.removeEventListener('pointermove', onMove); cancelAnimationFrame(raf); };
   }, []);
 
   const lines = profile.name.split(' ').slice(-2);

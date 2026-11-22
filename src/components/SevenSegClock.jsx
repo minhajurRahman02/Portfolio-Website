@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { profile } from '../data/site.js';
 
 /* ================= seven-segment clock =================
@@ -58,28 +58,10 @@ function Face({ h, m, s, cls }) {
   );
 }
 
+const city = profile.location.split(',')[0];
+
 export default function SevenSegClock() {
   const [t, setT] = useState(() => ({ h: 0, m: 0, s: 0 }));
-  const [visible, setVisible] = useState(true);
-  const host = useRef(null);
-
-  /* The yaw/drift wobble is a decorative 3D animation running on an element
-     tree full of drop-shadow filters and blur()'d reflections — the single
-     most expensive thing this component does, every frame, forever. None of
-     that is paid for while the clock has scrolled out of view, so pause the
-     animation (and, with it, the filter/compositing work) the moment it's
-     not on screen, and resume it the moment it is. */
-  useEffect(() => {
-    const el = host.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
-    const io = new IntersectionObserver(
-      ([entry]) => setVisible(entry.isIntersecting),
-      { rootMargin: '64px' },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
   useEffect(() => {
     /* Built once: constructing an Intl formatter is expensive, and the old
        loop built one on every animation frame. */
@@ -87,7 +69,7 @@ export default function SevenSegClock() {
     try {
       fmt = new Intl.DateTimeFormat('en-GB', {
         hour: '2-digit', minute: '2-digit', second: '2-digit',
-        hour12: false, timeZone: profile.timezone, // the profile's timezone, not the visitor's
+        hourCycle: 'h23', timeZone: profile.timezone, // the profile's timezone, not the visitor's; h23 so midnight reads 00, never 24
       });
     } catch { fmt = null; }
 
@@ -114,15 +96,12 @@ export default function SevenSegClock() {
 
   return (
     <div
-      className={`segclock${visible ? '' : ' seg-paused'}`}
-      ref={host}
+      className="segclock"
       role="img"
-      aria-label={`Dhaka time ${String(t.h).padStart(2, '0')}:${String(t.m).padStart(2, '0')}`}
+      aria-label={`${city} time ${String(t.h).padStart(2, '0')}:${String(t.m).padStart(2, '0')}`}
     >
-      {/* Two nested wrappers on purpose. The reference puts a slow yaw on one
-          element and a drift on another with a different period, so the two
-          never line up and the whole thing reads as a camera that will not
-          quite settle. One combined keyframe looks mechanical. */}
+      {/* A static 3D pose: .seg-rot holds the yaw, .seg-stage the Z push.
+          No looping animation — see the note on .seg-rot in index.css. */}
       <div className="seg-rot">
         <div className="seg-stage">
           <Face h={t.h} m={t.m} s={t.s} cls="" />
@@ -130,7 +109,7 @@ export default function SevenSegClock() {
           <Face h={t.h} m={t.m} s={t.s} cls="seg-shadow seg-shadow2" />
         </div>
       </div>
-      <span className="mono xs dim seg-cap">{profile.location.split(',')[0]}</span>
+      <span className="mono xs dim seg-cap">{city}</span>
     </div>
   );
-}
+}

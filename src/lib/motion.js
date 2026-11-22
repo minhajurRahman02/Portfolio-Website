@@ -34,7 +34,8 @@ export function setSmoothScroll(on) {
 /** Jump to top without the smooth-scroll easing fighting it. */
 export function scrollTop(instant = true) {
   if (lenis) lenis.scrollTo(0, { immediate: instant });
-  else window.scrollTo({ top: 0, behavior: instant ? 'auto' : 'smooth' });
+  // 'auto' would defer to html{scroll-behavior:smooth}; instant has to say so
+  else window.scrollTo({ top: 0, behavior: instant ? 'instant' : 'smooth' });
 }
 
 export function scrollToEl(el, opts = {}) {
