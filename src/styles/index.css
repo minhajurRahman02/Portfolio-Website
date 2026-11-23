@@ -3109,13 +3109,13 @@ kbd {
   padding: var(--pad) var(--pad) 12px;
   /* hinge at the digits' baseline, not at the padded box's bottom */
   transform-origin: 50% calc(100% - 12px);
-  /* translateX re-centres the mirror under the digits: the display holds a
-     -7deg yaw and the camera sits a few px right of the digits' centre
-     (the clock's padding is 20px left / 30px right), so the flat plane was
-     projected ~8px to the left. Measured, and constant at every width. */
-  transform: translateX(8px) translateY(5px) translateZ(2px) rotateX(-90.1deg);
+  /* --refl-x sets the reflection's sideways position under the digits.
+     8px centres it geometrically; it is set a touch left of that by eye.
+     Bigger moves it right, smaller moves it left. */
+  --refl-x:-1px;
+  transform: translateX(var(--refl-x)) translateY(5px) translateZ(10px) rotateX(-90.1deg);
   pointer-events: none;
-  opacity: .8;
+  opacity: .9;
   -webkit-mask-image:
     linear-gradient(to top, #000 0, rgba(0, 0, 0, .55) 30%, transparent 78%),
     linear-gradient(to right, transparent, #000 var(--pad), #000 calc(100% - var(--pad)), transparent);
@@ -4685,4 +4685,4 @@ body.nomotion #sky-gl {
   justify-content: center
 }
 
-@tailwind utilities;
+@tailwind utilities;
