@@ -5,7 +5,7 @@ import Carousel from '../components/Carousel.jsx';
 import { useApp } from '../context/AppState.jsx';
 import { about, education, profile } from '../data/site.js';
 
-export default function About() {
+export default function About({ onDetail }) {
   const navigate = useNavigate();
   const { toast } = useApp();
 
@@ -55,8 +55,18 @@ export default function About() {
         </div>
         <div className="timeline">
           <span className="tl-line" aria-hidden="true" />
-          {education.map((e) => (
-            <Reveal className="edu neu" key={e.degree}>
+          {education.map((e, i) => (
+            <Reveal
+              className="edu neu"
+              key={e.degree}
+              tabIndex={0}
+              role="button"
+              aria-haspopup="dialog"
+              onClick={() => onDetail?.('edu', i)}
+              onKeyDown={(ev) => {
+                if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onDetail?.('edu', i); }
+              }}
+            >
               <div className="edu-l">
                 <h3>{e.degree}</h3>
                 <p>{e.school}</p>
@@ -66,6 +76,7 @@ export default function About() {
               <div className="edu-r">
                 <span>{e.years}</span>
                 {e.flag && <em className="mono xs">{e.flag}</em>}
+                <span className="edu-more mono">details →</span>
               </div>
             </Reveal>
           ))}

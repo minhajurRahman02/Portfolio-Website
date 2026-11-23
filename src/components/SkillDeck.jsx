@@ -4,6 +4,7 @@ import { useInView } from './primitives.jsx';
 
 const CW = 200; // card width, matched to .skill-card in the stylesheet
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const setX = (c, x) => c.style.setProperty('--x', `${Math.round(x)}px`);
 
 /* ====================================================================
    The card deck. This is the one piece carried over from the original
@@ -11,10 +12,13 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
    the deck parts around whichever card you point at, and a second click
    flips that card to show the projects it was used in.
 
-   Positions are absolute and written in JS rather than CSS, because the
-   layout depends on how many cards there are and on the available width
-   at the same time. Below 760px the whole mechanism stands down and the
-   cards become an ordinary grid.
+   Positions are computed in JS, because the layout depends on how many
+   cards there are and on the available width at the same time. They are
+   written as a --x custom property that the stylesheet feeds into
+   transform, not as `left`: animating `left` re-ran layout for the whole
+   deck on every frame of every part/deal, while a transform only moves
+   already-painted layers. Below 760px the mechanism stands down and the
+   cards become a two-column grid that deals in and flips in 3D.
    ==================================================================== */
 export default function SkillDeck() {
   const deck = useRef(null);
@@ -35,7 +39,7 @@ export default function SkillDeck() {
     if (window.innerWidth <= 760) {
       live.current = false;
       flown.current = true;
-      list.forEach((c) => { c.style.left = ''; c.style.zIndex = ''; c.style.opacity = ''; });
+      list.forEach((c) => { c.style.removeProperty('--x'); c.style.zIndex = ''; c.style.opacity = ''; });
       return;
     }
 
@@ -50,7 +54,7 @@ export default function SkillDeck() {
     list.forEach((c, i) => {
       pos.current[i] = W / 2 - CW / 2 + (i - mid) * overlap;
       c.style.zIndex = String(i);
-      c.style.left = `${armed.current && !flown.current ? W / 2 - CW / 2 : pos.current[i]}px`;
+      setX(c, armed.current && !flown.current ? W / 2 - CW / 2 : pos.current[i]);
     });
   };
 
@@ -64,7 +68,7 @@ export default function SkillDeck() {
       armed.current = true;
       cards.current.filter(Boolean).forEach((c) => {
         c.style.opacity = '0';
-        c.style.left = `${el.clientWidth / 2 - CW / 2}px`;
+        setX(c, el.clientWidth / 2 - CW / 2);
       });
     }
     layout();
@@ -88,7 +92,7 @@ export default function SkillDeck() {
       timers.push(
         setTimeout(() => {
           c.style.opacity = '1';
-          c.style.left = `${pos.current[i]}px`;
+          setX(c, pos.current[i]);
           timers.push(setTimeout(() => c.classList.remove('fly'), 950));
         }, 70 * i)
       );
@@ -100,11 +104,11 @@ export default function SkillDeck() {
     cards.current.filter(Boolean).forEach((c, i) => {
       if (i === active) {
         c.classList.add('hovered');
-        c.style.left = `${pos.current[i]}px`;
+        setX(c, pos.current[i]);
         c.style.zIndex = '999';
       } else {
         c.classList.remove('hovered', 'flipped');
-        c.style.left = `${pos.current[i] + (i < active ? -1 : 1) * spread.current}px`;
+        setX(c, pos.current[i] + (i < active ? -1 : 1) * spread.current);
         c.style.zIndex = String(i);
       }
     });
@@ -114,13 +118,27 @@ export default function SkillDeck() {
     cards.current.filter(Boolean).forEach((c, i) => {
       c.classList.remove('hovered', 'flipped');
       if (live.current) {
-        c.style.left = `${pos.current[i]}px`;
+        setX(c, pos.current[i]);
         c.style.zIndex = String(i);
       }
     });
   };
 
+  /* On a touch screen the browser fires pointerleave right after every tap,
+     before the click. Resetting there un-parted the card each time, so the
+     second tap parted it again instead of flipping it — tablets never
+     flipped. Touch leaves are ignored; a tap outside the deck resets it. */
+  useEffect(() => {
+    const away = (e) => {
+      if (e.pointerType === 'mouse' || !live.current) return;
+      if (!deck.current?.contains(e.target)) reset();
+    };
+    document.addEventListener('pointerdown', away, { passive: true });
+    return () => document.removeEventListener('pointerdown', away);
+  }, []);
+
   const onMove = (e) => {
+    if (e.pointerType !== 'mouse') return; // touch parts on tap, in onPick
     if (!live.current || !flown.current) return;
     const c = e.target.closest?.('.skill-card');
     if (!c) return;
@@ -140,17 +158,18 @@ export default function SkillDeck() {
   return (
     <>
       <div
-        className="skills-deck"
+        className={`skills-deck${lit ? ' is-lit' : ''}`}
         id="deck"
         ref={deck}
         onPointerMove={onMove}
-        onPointerLeave={() => live.current && reset()}
+        onPointerLeave={(e) => { if (e.pointerType === 'mouse' && live.current) reset(); }}
       >
         {skills.map((s, i) => (
           <div
             className="skill-card"
             key={s.title}
             data-i={i}
+            style={{ '--i': i }}
             tabIndex={0}
             ref={(el) => { cards.current[i] = el; }}
             onClick={() => onPick(i)}
@@ -180,7 +199,7 @@ export default function SkillDeck() {
           </div>
         ))}
       </div>
-      <p className="deck-mobile-note mono xs dim">Tap a card to part the deck · tap again to flip</p>
+      <p className="deck-mobile-note mono xs dim">Tap a card to flip it</p>
     </>
   );
 }

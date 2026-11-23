@@ -1,4 +1,5 @@
 /* Work items. `zone` decides which rail an item appears in.
+   `cover` is the optional 16:9 image at the top of the details modal.
    A zone showing more than THREE items grows a "See all" button
    automatically — see components/WorkZone.jsx. */
 
@@ -15,6 +16,9 @@ export const work = [
     year: '2026',
     chip: 'ICCIT submission',
     role: 'Lead Engineer and First Author',
+    // 16:9 cover shown at the top of the details modal; leave '' to hide it.
+    // Put the file in public/images/covers/, e.g. '/images/covers/ecovlm.jpg'
+    cover: '',
     tags: ['PyTorch', 'Zeus telemetry', 'Transformers', 'Kaggle T4'],
     featured: true,
     teaser:
@@ -53,6 +57,7 @@ export const work = [
     tags: ['HCI', 'Study design', 'Apps Script', 'Statistics'],
     featured: true,
     role: 'Research Member',
+    cover: '',
     teaser:
       'Does repeated exposure to manipulative AI inoculate people, or wear them down? A three-session longitudinal study with a custom web testbed and a four-category manipulation taxonomy.',
     facts: [
@@ -89,6 +94,7 @@ export const work = [
     tags: ['DistilBERT', 'GBDT', 'Adversarial ML'],
     featured: true,
     role: 'Research Member',
+    cover: '',
     teaser:
       'What happens to a phishing detector when attackers use homoglyphs, leetspeak and zero-width characters? DistilBERT embeddings against a handcrafted-feature fusion GBDT, under attack.',
     facts: [
@@ -121,6 +127,7 @@ export const work = [
     chip: 'Feeds EcoVLM',
     tags: ['Literature review', 'Taxonomy'],
     role: 'Lead Researcher',
+    cover: '',
     facts: [
       ['Finding', 'Attention-based is the most saturated branch — 9 of 25'],
       ['Gap', 'Energy measured on real hardware, not FLOPs proxies'],
@@ -157,6 +164,7 @@ export const work = [
     tags: ['React', 'Flask', 'PostgreSQL', 'PuLP / CBC', 'Docker'],
     featured: true,
     role: 'Lead Engineer and Project Manager',
+    cover: '',
     teaser:
       'A MILP optimization engine that decides how blood moves between hospitals and blood banks across Bangladesh — compatibility, urgency, expiry, distance and fairness as hard constraints. Not a donor-finder app.',
     facts: [
@@ -221,6 +229,7 @@ export const work = [
     chip: 'In build',
     tags: ['React', 'Vite', 'Tailwind', 'GSAP', 'Lenis'],
     role: 'Solo Project',
+    cover: '',
     facts: [
       ['Stack', 'React · Vite · Tailwind · GSAP · Lenis'],
       ['Detail', 'One WebGL context, scenes swapped per route'],

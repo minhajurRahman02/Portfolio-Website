@@ -1,31 +1,27 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { about, profile } from '../data/site.js';
 
 /* The portrait frame. Height is fixed by an aspect ratio in the stylesheet,
-   because the three photos are not the same shape and letting the first one
-   set the box made the frame jump on every change. */
+   because the photos are not the same shape and letting the first one set
+   the box made the frame jump on every change. The photo only changes when
+   it is clicked: no timer, no arrow button. */
 export default function PhotoStack() {
   const [i, setI] = useState(0);
-  const timer = useRef(null);
   const n = about.photos.length;
-
-  const show = useCallback(
-    (k) => {
-      setI(((k % n) + n) % n);
-      clearInterval(timer.current);
-      timer.current = setInterval(() => setI((v) => (v + 1) % n), 7000);
-    },
-    [n]
-  );
-
-  useEffect(() => {
-    timer.current = setInterval(() => setI((v) => (v + 1) % n), 7000);
-    return () => clearInterval(timer.current);
-  }, [n]);
+  const next = () => setI((v) => (v + 1) % n);
 
   return (
     <figure className="photoframe">
-      <div className="pf-stack" onClick={() => show(i + 1)}>
+      <div
+        className="pf-stack"
+        onClick={next}
+        role="button"
+        tabIndex={0}
+        aria-label={`Photo ${i + 1} of ${n} — show the next one`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); next(); }
+        }}
+      >
         {about.photos.map((src, k) => (
           <img
             className={k === i ? 'on' : ''}
@@ -35,13 +31,12 @@ export default function PhotoStack() {
             width="900"
             height="959"
             decoding="async"
+            // only the shown photo and the next one are fetched up front
+            loading={k <= 1 ? 'eager' : 'lazy'}
           />
         ))}
       </div>
-      <button className="pf-next" onClick={(e) => { e.stopPropagation(); show(i + 1); }} aria-label="Next photo">
-        <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" /></svg>
-      </button>
-      <div className="pf-dots">
+      <div className="pf-dots" aria-hidden="true">
         {about.photos.map((src, k) => <i className={k === i ? 'on' : ''} key={src} />)}
       </div>
       <figcaption className="mono xs dim">Click the photo to change it</figcaption>

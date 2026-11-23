@@ -472,8 +472,7 @@ export function BackToTop() {
     if (!b || b.classList.contains('launch')) return;
     b.classList.add('launch');
     streaks.current?.classList.add('on');
-    Aud.unlock();
-    Aud.zap();
+    // silent on purpose: the launch is visual only
     Sky.burstComets(2);
     setTimeout(() => scrollTop(false), 240);
     setTimeout(() => streaks.current?.classList.remove('on'), 1100);

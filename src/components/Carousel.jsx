@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { interests } from '../data/interests.js';
 
-const lerp = (a, b, k) => a + (b - a) * k;
+/* time-based easing: the same settle speed at 60, 90 or 120 Hz (a fixed
+   0.14 per frame settled twice as fast on a 120 Hz screen) */
+const ease = (dt) => 1 - Math.pow(0.0004, dt);
 
 /* ====================== 3D carousel ======================
    Panels sit on the inside of a cylinder, so the radius has to come from the
@@ -35,9 +37,18 @@ export default function Carousel({ onPick }) {
       // cylinder whose front face is magnified by the perspective and spills
       // over the controls below
       p.style.transform = `translateZ(${-radius.current}px) rotateY(${a}deg) translateZ(${radius.current}px)`;
-      const norm = ((a % 360) + 360) % 360;
-      // panels on the far side must not swallow clicks meant for the front
-      p.classList.toggle('far', !(norm < 40 || norm > 320));
+      // signed distance from the front, -180..180
+      const d = ((((a % 360) + 360) % 360) + 180) % 360 - 180;
+      const ad = Math.abs(d);
+      // three tiers: the front card, its two neighbours (readable, tappable
+      // to bring forward) and the rest (faded, no live blur)
+      const tier = ad < STEP / 2 ? 'front' : ad < STEP * 1.5 ? 'side' : 'far';
+      if (p._tier !== tier) {
+        p._tier = tier;
+        p.classList.toggle('side', tier === 'side');
+        p.classList.toggle('far', tier === 'far');
+        p.dataset.dir = d < 0 ? '-1' : '1';
+      }
     }
     const n = interests.length;
     const idx = ((Math.round(-angle.current / STEP) % n) + n) % n;
@@ -62,16 +73,25 @@ export default function Carousel({ onPick }) {
     });
   }, [render]);
 
-  const animate = useCallback(() => {
-    angle.current = lerp(angle.current, target.current, 0.14);
-    render();
+  const last = useRef(0);
+  const step = useCallback((now) => {
+    const dt = Math.min((now - (last.current || now)) / 1000, 0.05) || 1 / 60;
+    last.current = now;
+    angle.current += (target.current - angle.current) * ease(dt);
     if (Math.abs(target.current - angle.current) > 0.05) {
-      raf.current = requestAnimationFrame(animate);
+      render();
+      raf.current = requestAnimationFrame(step);
     } else {
       angle.current = target.current;
+      last.current = 0;
       render();
     }
   }, [render]);
+  const animate = useCallback(() => {
+    cancelAnimationFrame(raf.current);
+    last.current = 0;
+    raf.current = requestAnimationFrame(step);
+  }, [step]);
 
   const layout = useCallback(() => {
     const el = host.current;
@@ -111,24 +131,24 @@ export default function Carousel({ onPick }) {
     queueRender();
   };
 
-  const up = () => {
+  const up = (e) => {
     const d = drag.current;
     if (!d) return;
     drag.current = null;
     const wasDrag = moved.current > 6;
     target.current = Math.round(target.current / STEP) * STEP;
-    cancelAnimationFrame(raf.current);
     cancelAnimationFrame(moveRaf.current);
     moveRaf.current = 0;
-    animate();
-    if (!wasDrag && d.panel && !d.panel.classList.contains('far')) {
-      onPick?.(d.panel.dataset.go);
+    if (!wasDrag && e?.type === 'pointerup' && d.panel) {
+      // a tap: the front card opens; a neighbour rotates to the front
+      if (d.panel._tier === 'front') { animate(); onPick?.(d.panel.dataset.go); return; }
+      if (d.panel._tier === 'side') target.current -= Number(d.panel.dataset.dir) * STEP;
     }
+    animate();
   };
 
   const spin = (dir) => {
     target.current += dir * STEP;
-    cancelAnimationFrame(raf.current);
     animate();
   };
 
@@ -140,7 +160,10 @@ export default function Carousel({ onPick }) {
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
-        onPointerCancel={() => { drag.current = null; }}
+        // a cancelled drag (the browser took the gesture for a scroll) used
+        // to leave the ring parked between two cards; it snaps back now
+        onPointerCancel={up}
+        onLostPointerCapture={up}
       >
         {interests.map((it, i) => (
           <div
@@ -163,4 +186,4 @@ export default function Carousel({ onPick }) {
       </div>
     </div>
   );
-}
+}

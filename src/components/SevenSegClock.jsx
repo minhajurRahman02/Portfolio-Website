@@ -6,9 +6,9 @@ import { profile } from '../data/site.js';
    CSS from data-digit, so this component only ever writes six characters —
    no per-segment bookkeeping in JS.
 
-   Two more copies of the whole display sit underneath as the reflection:
-   one rotated flat into the floor and heavily blurred, one sharper and
-   masked to fade out. Both are aria-hidden. */
+   One more copy of the whole display sits underneath as the reflection:
+   rotated flat into the floor, blurred, and faded out with distance. It is
+   aria-hidden. */
 
 const BARS = [
   ['end', 'top'],
@@ -38,7 +38,7 @@ function Group({ value }) {
   );
 }
 
-/** One copy of the display: the lit one, or one of the two reflections.
+/** One copy of the display: the lit one, or the reflection.
     The glow/mask live on an inner wrapper and the blur on the outer one on
     purpose — CSS applies an element's own mask after its own filter, so a
     mask sitting on the SAME element as the blur crops the already-soft glow
@@ -105,8 +105,7 @@ export default function SevenSegClock() {
       <div className="seg-rot">
         <div className="seg-stage">
           <Face h={t.h} m={t.m} s={t.s} cls="" />
-          <Face h={t.h} m={t.m} s={t.s} cls="seg-shadow seg-shadow1" />
-          <Face h={t.h} m={t.m} s={t.s} cls="seg-shadow seg-shadow2" />
+          <Face h={t.h} m={t.m} s={t.s} cls="seg-shadow" />
         </div>
       </div>
       <span className="mono xs dim seg-cap">{city}</span>

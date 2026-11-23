@@ -1610,21 +1610,26 @@ kbd {
 }
 
 .skill-card {
+  --x: 0px;
   position: absolute;
   top: 50%;
   left: 0;
   width: 200px;
   height: 300px;
-  transform: translateY(-50%);
+  /* position comes from --x (SkillDeck.jsx), so parting and dealing are pure
+     compositor moves instead of a layout pass per frame. No permanent
+     will-change: a card held on its own layer was rasterised at 1x and then
+     scaled to 1.13x when hovered, which is why its text looked soft. The
+     transition promotes it while it moves and it repaints crisp after. */
+  transform: translateX(var(--x)) translateY(-50%);
   transform-style: preserve-3d;
   border-radius: 22px;
   cursor: pointer;
-  transition: left .5s cubic-bezier(.22, 1, .36, 1), transform .5s cubic-bezier(.22, 1, .36, 1);
-  will-change: left, transform
+  transition: transform .5s cubic-bezier(.22, 1, .36, 1)
 }
 
 .skill-card.fly {
-  transition: left .9s cubic-bezier(.22, 1, .36, 1), transform .9s cubic-bezier(.22, 1, .36, 1), opacity .6s
+  transition: transform .9s cubic-bezier(.22, 1, .36, 1), opacity .6s
 }
 
 .sc-face {
@@ -1639,17 +1644,22 @@ kbd {
   justify-content: space-between;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  border: 1px solid rgba(160, 130, 255, .4);
-  /* Eight of these overlap by design, so they carry more tint than a
-        standalone card so the text underneath the stack stays readable —
-        plain blur, no refraction. */
-  background: rgba(14, 12, 34, .74);
+  /* Same glass as every other card on the site (border, bevel, shadow and
+     blur tokens of .glass-card). The one difference is the tint: eight of
+     these overlap by design, so they use the site's "dense glass" tint
+     (the one the case modal uses) to keep the stacked text readable. The
+     purple border and heavier violet-black fill they had before were the
+     only cards on the site styled that way. */
+  border: 1px solid var(--glass-brd);
+  background: rgba(9, 9, 24, .56);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, .6),
+  box-shadow:
     inset 1px 1px 0 -0.5px var(--lens-hi),
     inset -1px -1px 0 -0.5px var(--lens-hi-2),
-    inset 0 0 1px var(--lens-rim)
+    inset 0 0 1px var(--lens-rim),
+    var(--card-sh);
+  transition: border-color .35s, box-shadow .35s
 }
 
 .sheen {
@@ -1723,12 +1733,15 @@ kbd {
 
 .sc-back {
   transform: rotateY(180deg);
+  border-color: rgba(145, 104, 242, .45);
   /* the back face's background is opaque, so blurring what is behind it was
      a full backdrop pass per card that could never be seen */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background: linear-gradient(142deg, rgba(90, 82, 232, .5), rgba(145, 104, 242, .34) 60%, rgba(47, 218, 240, .26)),
-    linear-gradient(158deg, rgba(26, 22, 60, .99), rgba(13, 11, 32, 1))
+  /* opaque (it sits over other cards with no blur), with the site's
+     indigo→violet→cyan accent as a soft wash rather than a solid gradient */
+  background: linear-gradient(142deg, rgba(90, 82, 232, .26), rgba(145, 104, 242, .16) 60%, rgba(47, 218, 240, .12)),
+    rgb(13, 12, 30)
 }
 
 .sc-back h4 {
@@ -1766,18 +1779,23 @@ kbd {
 }
 
 .skill-card.hovered {
-  transform: translateY(-50%) scale(1.13);
+  transform: translateX(var(--x)) translateY(-50%) scale(1.13);
   z-index: 999
 }
 
-.skill-card.hovered .sc-face {
+/* the same hover language as the post and work cards: violet edge + glow */
+.skill-card.hovered .sc-face,
+.skill-card:focus-visible .sc-face {
   border-color: var(--violet);
-  box-shadow: 0 0 34px rgba(145, 104, 242, .55), 0 24px 54px rgba(0, 0, 0, .55),
-    inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -40px 60px -50px rgba(255, 255, 255, .5)
+  box-shadow:
+    inset 1px 1px 0 -0.5px var(--lens-hi),
+    inset -1px -1px 0 -0.5px var(--lens-hi-2),
+    inset 0 0 1px var(--lens-rim),
+    var(--card-sh), var(--glow)
 }
 
 .skill-card.flipped {
-  transform: translateY(-50%) scale(1.13) rotateY(180deg)
+  transform: translateX(var(--x)) translateY(-50%) scale(1.13) rotateY(180deg)
 }
 
 .deck-mobile-note {
@@ -2278,30 +2296,6 @@ kbd {
   transform: scale(1)
 }
 
-.pf-next {
-  position: absolute;
-  right: 12px;
-  bottom: 46px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  background: var(--glass-2);
-  border: 1px solid var(--glass-brd);
-  backdrop-filter: var(--glass-blur)
-}
-
-.pf-next svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round
-}
-
 .pf-dots {
   display: flex;
   gap: 7px
@@ -2377,21 +2371,24 @@ kbd {
   transition: transform .35s cubic-bezier(.22, 1, .36, 1), box-shadow .35s
 }
 
-.edu::before {
-  content: "";
-  position: absolute;
-  left: -26px;
-  top: 50%;
-  width: 10px;
-  height: 10px;
-  margin-top: -5px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 4px var(--slab), 0 0 14px var(--accent)
+.edu {
+  cursor: pointer
 }
 
-.edu:hover {
+.edu:hover,
+.edu:focus-visible {
   transform: scale(1.016)
+}
+
+.edu-more {
+  font-size: 11px;
+  color: var(--violet);
+  opacity: .8;
+  transition: opacity .3s
+}
+
+.edu:hover .edu-more {
+  opacity: 1
 }
 
 .edu-l h3 {
@@ -2412,7 +2409,9 @@ kbd {
 .edu-r {
   text-align: right;
   display: grid;
-  gap: 3px
+  gap: 3px;
+  flex: 0 0 auto;
+  white-space: nowrap
 }
 
 .edu-r span {
@@ -2501,6 +2500,17 @@ kbd {
   text-transform: uppercase
 }
 
+/* The two neighbours of the front card: clearly readable, a step back. They
+   drop the live backdrop blur (the card behind them is already blurred by
+   the front one) and carry a little more tint instead, so they read as the
+   same glass without a blur pass each while the ring turns. */
+.cs-panel.side {
+  opacity: .74;
+  background: rgba(16, 14, 38, .52);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none
+}
+
 /* far panels are already faded + CSS-blurred into illegibility, so dropping
       their own backdrop-filter costs nothing visually and removes most of the
       carousel's per-frame compositing work — only 2-3 panels keep a live blur */
@@ -2560,7 +2570,8 @@ kbd {
   transition: .4s
 }
 
-.post:hover {
+.post:hover,
+.post:focus-visible {
   border-color: var(--violet);
   transform: scale(1.018);
   box-shadow: 0 30px 66px rgba(0, 0, 0, .58), var(--glow)
@@ -2878,6 +2889,11 @@ kbd {
         floor toward the viewer without rotating the digits themselves. */
   perspective-origin: 50% -45%;
   transform-style: preserve-3d;
+  /* shrink to the display's own width. Stretched to the full sidebar column,
+     the camera's centre (perspective-origin 50%) sat far to the right of the
+     digits, and the floor reflection — which comes toward the camera — was
+     projected away from it, sliding left of the digits it mirrors */
+  justify-self: start;
   margin: 10px 0 0 -8px;
   /* the Z push and the drift both push the display outside its layout box,
         so the padding has to cover both before overflow clips it — the right
@@ -3073,46 +3089,49 @@ kbd {
   filter: drop-shadow(0 0 5px currentColor) drop-shadow(0 0 14px currentColor)
 }
 
-/* The reflections: the display laid flat into the floor. One is a wide soft
-      pool of light, the other a tighter mirror image that fades with distance.
-      The fade mask also moved from per-digit to per-face — a vertical gradient
-      over 8 identically-aligned elements is pixel-identical to the same
-      gradient over their shared bounding box, for one mask instead of eight.
-      Mask + glow sit on .seg-glow (the inner wrapper); blur sits one level out
-      on .seg-shadow itself. An element's own mask is applied after its own
-      filter, so putting blur on the SAME element as the mask was cropping the
-      already-soft glow into a hard edge right where the gradient hit zero —
-      this way the outer blur runs on top of the already-masked inner content
-      and smooths that edge the way it originally did. */
+/* The reflection: one copy of the display laid flat into the floor, as a
+      single clean blur that fades out with distance.
+      It used to be two stacked copies, and the soft one was masked by a
+      gradient that stopped at 35% instead of 0 and was clipped to its own
+      box — after the blur, that box edge showed as a hard-edged slab under
+      the digits, with the faint unlit segments smeared into a grey haze on
+      top. Now:
+        - the blur lives on the inner .seg-glow and the fade on the outer
+          .seg-shadow, so the mask is applied after the blur, never cut by it;
+        - .seg-shadow is padded wider than the blur's spread, and its mask
+          reaches full transparency on every side, so no edge is ever hit;
+        - only lit segments are reflected. */
 .seg-shadow {
+  --pad: 30px;
   position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: bottom center;
-  transform: translateY(5px) translateZ(2px) rotateX(-90.1deg);
-  pointer-events: none
+  top: calc(var(--pad) * -1);
+  left: calc(var(--pad) * -1);
+  padding: var(--pad) var(--pad) 12px;
+  /* hinge at the digits' baseline, not at the padded box's bottom */
+  transform-origin: 50% calc(100% - 12px);
+  /* translateX re-centres the mirror under the digits: the display holds a
+     -7deg yaw and the camera sits a few px right of the digits' centre
+     (the clock's padding is 20px left / 30px right), so the flat plane was
+     projected ~8px to the left. Measured, and constant at every width. */
+  transform: translateX(8px) translateY(5px) translateZ(2px) rotateX(-90.1deg);
+  pointer-events: none;
+  opacity: .8;
+  -webkit-mask-image:
+    linear-gradient(to top, #000 0, rgba(0, 0, 0, .55) 30%, transparent 78%),
+    linear-gradient(to right, transparent, #000 var(--pad), #000 calc(100% - var(--pad)), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to top, #000 0, rgba(0, 0, 0, .55) 30%, transparent 78%),
+    linear-gradient(to right, transparent, #000 var(--pad), #000 calc(100% - var(--pad)), transparent);
+  mask-composite: intersect
 }
 
-.seg-shadow1 {
-  opacity: .55;
-  filter: blur(10px)
+.seg-shadow .seg-glow {
+  filter: blur(4px) drop-shadow(0 0 8px currentColor)
 }
 
-.seg-shadow1 .seg-glow {
-  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 16px currentColor);
-  -webkit-mask-image: linear-gradient(to bottom, #fff, rgba(0, 0, 0, .35));
-  mask-image: linear-gradient(to bottom, #fff, rgba(0, 0, 0, .35))
-}
-
-.seg-shadow2 {
-  opacity: .4;
-  filter: blur(2.5px)
-}
-
-.seg-shadow2 .seg-glow {
-  filter: drop-shadow(0 0 5px currentColor);
-  -webkit-mask-image: linear-gradient(to top, #000, rgba(0, 0, 0, .1) 55%, transparent);
-  mask-image: linear-gradient(to top, #000, rgba(0, 0, 0, .1) 55%, transparent)
+.seg-shadow .digit span {
+  opacity: var(--act)
 }
 
 /* above the display: the reflection pools exactly where a caption under it
@@ -3834,6 +3853,14 @@ body.scrolled #totop {
   display: grid
 }
 
+/* holds the close button OUTSIDE the scrolling panel, so the X can neither
+   scroll away nor be covered by the content */
+.case-shell {
+  position: relative;
+  width: min(760px, 100%);
+  animation: caseIn .45s cubic-bezier(.22, 1, .36, 1)
+}
+
 .case-bd {
   position: absolute;
   inset: 0;
@@ -3850,11 +3877,56 @@ body.scrolled #totop {
 
 .case {
   position: relative;
-  width: min(760px, 100%);
+  width: 100%;
   max-height: 86vh;
+  max-height: 86dvh;
   overflow-y: auto;
-  padding: clamp(24px, 4vw, 44px);
-  animation: caseIn .45s cubic-bezier(.22, 1, .36, 1)
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: clamp(24px, 4vw, 44px)
+}
+
+/* optional cover / certificate at the top of the modal. It is rendered only
+   when an image is set, so an empty one leaves no gap. */
+.case-media {
+  margin: 0 0 22px;
+  border-radius: 16px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--glass-brd);
+  background: rgba(255, 255, 255, .03)
+}
+
+.case-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover
+}
+
+/* certificates keep their own proportions — never cropped */
+.case-media.is-doc {
+  aspect-ratio: auto;
+  padding: 10px;
+  background: rgba(255, 255, 255, .05)
+}
+
+.case-media.is-doc img {
+  height: auto;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 8px
+}
+
+.case .eyebrow {
+  margin-bottom: 10px
+}
+
+.case-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 4px
 }
 
 @keyframes caseIn {
@@ -3866,16 +3938,27 @@ body.scrolled #totop {
 
 .case-x {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 40px;
-  height: 40px;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   cursor: pointer;
-  background: var(--glass-2);
+  color: var(--ink);
+  background: rgba(12, 11, 28, .72);
   border: 1px solid var(--glass-brd);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: grid;
-  place-items: center
+  place-items: center;
+  touch-action: manipulation;
+  transition: border-color .3s, transform .3s
+}
+
+.case-x:hover {
+  border-color: var(--violet);
+  transform: scale(1.06)
 }
 
 .case-x svg {
@@ -4352,37 +4435,80 @@ body.zerog .cs-panel {
 }
 
 @media (max-width:760px) {
+  /* Phones: a two-column grid. Cards deal in one after another when the
+     deck scrolls into view, and a tap turns the card over in 3D. */
   .skills-deck {
     position: static;
     height: auto;
     display: grid;
-    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
     perspective: none;
-    padding-block: 4px
+    padding: 4px 2px 8px
   }
 
   .skill-card {
     position: relative;
     top: auto;
-    left: auto !important;
-    transform: none !important;
+    left: auto;
     width: 100%;
-    height: 280px
-  }
-
-  .skill-card.hovered,
-  .skill-card.flipped {
-    transform: none !important
-  }
-
-  .skill-card.flipped .sc-front {
+    height: 248px;
     opacity: 0;
-    pointer-events: none
+    translate: 0 28px;
+    transform: perspective(900px) rotateY(0deg);
+    /* the deal delay belongs to the entrance only, never to the flip */
+    transition:
+      opacity .6s ease calc(var(--i, 0) * 70ms),
+      translate .75s cubic-bezier(.22, 1, .36, 1) calc(var(--i, 0) * 70ms),
+      transform .7s cubic-bezier(.3, 1.1, .4, 1)
   }
 
-  .skill-card.flipped .sc-back {
-    transform: none;
-    opacity: 1
+  .skills-deck.is-lit .skill-card {
+    opacity: 1;
+    translate: 0 0
+  }
+
+  .skill-card.hovered {
+    transform: perspective(900px) rotateY(0deg)
+  }
+
+  .skill-card.flipped {
+    transform: perspective(900px) rotateY(180deg)
+  }
+
+  .skill-card:active .sc-face {
+    border-color: var(--violet)
+  }
+
+  .sc-face {
+    padding: 16px 14px;
+    border-radius: 18px
+  }
+
+  .sc-front h3 {
+    font-size: 15px
+  }
+
+  .sc-front ul {
+    font-size: 12px;
+    gap: 4px
+  }
+
+  .sc-front li::before {
+    margin-right: 5px
+  }
+
+  .used {
+    font-size: 12.5px;
+    gap: 7px
+  }
+
+  .skill-card.hovered .sc-face {
+    box-shadow:
+      inset 1px 1px 0 -0.5px var(--lens-hi),
+      inset -1px -1px 0 -0.5px var(--lens-hi-2),
+      inset 0 0 1px var(--lens-rim),
+      var(--card-sh)
   }
 
   .deck-mobile-note {

@@ -66,13 +66,17 @@ export default function App() {
   const [booted, setBooted] = useState(() => alreadyBooted());
   const [menu, setMenu] = useState(false);
   const [feat, setFeat] = useState(false);
-  const [caseId, setCaseId] = useState(null);
+  // the open details modal: { kind: 'work' | 'post' | 'edu', id } or null
+  const [detail, setDetail] = useState(null);
+  const openCase = useCallback((id) => setDetail({ kind: 'work', id }), []);
+  const openDetail = useCallback((kind, id) => setDetail({ kind, id }), []);
+  const closeDetail = useCallback(() => setDetail(null), []);
   const featBtn = useRef(null);
 
   const onSwap = useCallback(() => {
     scrollTop(true);
     document.body.classList.remove('scrolled');
-    setCaseId(null);
+    setDetail(null);
     // ScrollTrigger measured the previous page; the new one has new heights
     requestAnimationFrame(() => requestAnimationFrame(refreshTriggers));
   }, []);
@@ -142,7 +146,7 @@ export default function App() {
       if (e.key !== 'Escape') return;
       setFeat(false);
       setMenu(false);
-      setCaseId(null);
+      setDetail(null);
     };
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
@@ -168,10 +172,10 @@ export default function App() {
 
       <main id="app">
         <Routes location={shown} key={shown.pathname}>
-          <Route path="/" element={<Home onCase={setCaseId} />} />
-          <Route path="/work" element={<Work onCase={setCaseId} />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/blog" element={<Blog />} />
+          <Route path="/" element={<Home onCase={openCase} />} />
+          <Route path="/work" element={<Work onCase={openCase} />} />
+          <Route path="/about" element={<About onDetail={openDetail} />} />
+          <Route path="/blog" element={<Blog onDetail={openDetail} />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/interests" element={<Suspense fallback={null}><Interests /></Suspense>} />
           <Route path="*" element={<NotFound />} />
@@ -187,7 +191,7 @@ export default function App() {
       </footer>
 
       <BackToTop />
-      <CaseModal id={caseId} close={() => setCaseId(null)} />
+      <CaseModal detail={detail} close={closeDetail} />
       <TerminalPane />
       <Toast />
 
@@ -196,4 +200,4 @@ export default function App() {
       </div>
     </>
   );
-}
+}

@@ -63,19 +63,28 @@ export const education = [
     school: 'United International University (UIU)',
     note: 'Research: energy-efficient VLM inference (Thesis) · Manipulative AI · Phishing Robustness · IDS · Multimodal TB Detection · Optimization',
     years: '2022 — 2027',
-    flag: 'Expected', 
+    flag: 'Expected',
+    // details modal: a certificate image (any shape, shown uncropped) and your own
+    // description. Both optional — an empty certificate is hidden, and an
+    // empty description falls back to `note` above.
+    certificate: '', // e.g. '/images/certificates/bsc.jpg'
+    description: '',
   },
   {
     degree: 'Higher Secondary Certificate',
     school: 'St. Joseph Higher Secondary School · Science',
     result: 'GPA 5.00 / 5.00',
     years: '2021',
+    certificate: '',
+    description: '',
   },
   {
     degree: 'Secondary School Certificate',
     school: 'Jatrabari Ideal School & College · Science',
     result: 'GPA 5.00 / 5.00',
     years: '2019',
+    certificate: '',
+    description: '',
   },
 ];
 
@@ -122,32 +131,41 @@ export const skills = [
   },
 ];
 
+/* Blog notes. Each card opens the same details modal as a work item. */
 export const posts = [
   {
     slug: 'attention-variance',
+    cover: '', // optional 16:9 image for the details modal, e.g. '/images/covers/post.jpg'
     status: 'Draft',
     minutes: 8,
     topic: 'EcoVLM',
     title: 'Why attention variance beats attention mean, but only on single-pass encoders?',
     excerpt:
       "Variance predicted token importance at AUC 0.7102 against the mean's 0.6403 on Qwen and GLM. On the multi-crop models it was neutral at best and harmful at worst. The architecture decides the criterion, and that turned out to be the whole finding.",
+    // full text for the details modal, one string per paragraph;
+    // while it is empty the modal shows the excerpt
+    body: [],
   },
   {
     slug: 'knowing-vs-doing',
+    cover: '',
     status: 'Draft',
     minutes: 6,
     topic: 'HCI',
     title: 'People learned to spot the manipulation. They complied anyway.',
     excerpt:
       'Over four weeks recognition more than doubled and false positives fell. Compliance moved by three points. The gap between knowing and doing widened from 4.7% to 15%, which is not the story anyone wanted to find.',
+    body: [],
   },
   {
     slug: 'not-a-search-problem',
+    cover: '',
     status: 'Draft',
     minutes: 11,
     topic: 'Optimisation',
     title: 'A blood bank is not a search problem',
     excerpt:
       'Every donor app treats scarcity as a matching problem. It is an allocation problem, and once expiry dates and type compatibility enter the constraints, the honest formulation is a mixed-integer program, not a sorted list.',
+    body: [],
   },
 ];
