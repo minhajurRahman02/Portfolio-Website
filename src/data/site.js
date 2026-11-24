@@ -13,8 +13,8 @@ export const profile = {
   links: [
     { label: 'GitHub', href: 'https://github.com/minhajurRahman02', placeholder: 'github.com/…' },
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/md-minhajur-rahman-a6581834a?utm_source=share_via&utm_content=profile&utm_medium=member_android', placeholder: 'linkedin.com/in/…' },
-    { label: 'Scholar', href: '', placeholder: 'scholar.google.com/…' },
-    { label: 'X', href: '', placeholder: 'x.com/…' },
+    { label: 'Scholar', href: '#', placeholder: 'scholar.google.com/…' },
+    { label: 'X', href: 'https://x.com/michael_myersX', placeholder: 'x.com/…' },
     { label: 'Instagram', href: 'https://www.instagram.com/_min.haz_/', placeholder: 'instagram.com/…' },
     { label: 'Facebook', href: 'https://www.facebook.com/minhajur.rahman.984349/', placeholder: 'facebook.com/…' },
   ],
