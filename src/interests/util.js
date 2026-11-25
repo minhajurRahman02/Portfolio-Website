@@ -107,10 +107,19 @@ export function trackNum(keys, p, col) {
 }
 
 /* ---------------- canvases ---------------- */
+/** A bare canvas: a DOM canvas on the page, an OffscreenCanvas inside a
+    worker (where scenes can paint their layers off the main thread). */
+export function newCanvas(w = 1, h = 1) {
+  if (typeof document !== 'undefined') {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    return c;
+  }
+  return new OffscreenCanvas(w, h);
+}
+
 export function makeCanvas(w, h, dpr = 1) {
-  const c = document.createElement('canvas');
-  c.width = Math.max(1, Math.ceil(w * dpr));
-  c.height = Math.max(1, Math.ceil(h * dpr));
+  const c = newCanvas(Math.max(1, Math.ceil(w * dpr)), Math.max(1, Math.ceil(h * dpr)));
   c.w = w; c.h = h; c.dpr = dpr;
   const x = c.getContext('2d');
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -134,16 +143,14 @@ export function blurred(src, radius) {
   const chain = [];
   for (let i = 0; i < steps; i++) {
     w = Math.max(2, Math.round(w / 2)); h = Math.max(2, Math.round(h / 2));
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
+    const c = newCanvas(w, h);
     const x = c.getContext('2d');
     x.imageSmoothingQuality = 'high';
     x.drawImage(cur, 0, 0, w, h);
     chain.push(c);
     cur = c;
   }
-  const out = document.createElement('canvas');
-  out.width = src.width; out.height = src.height;
+  const out = newCanvas(src.width, src.height);
   out.w = src.w; out.h = src.h; out.dpr = src.dpr;
   const ox = out.getContext('2d');
   ox.imageSmoothingQuality = 'high';
@@ -164,18 +171,15 @@ export function smeared(src, k = 6) {
   // squash in halves so the downsample averages instead of skipping columns
   let cur = src;
   while (cur.width / 2 > w) {
-    const h2 = document.createElement('canvas');
-    h2.width = Math.round(cur.width / 2); h2.height = src.height;
+    const h2 = newCanvas(Math.round(cur.width / 2), src.height);
     const hx = h2.getContext('2d'); hx.imageSmoothingQuality = 'high';
     hx.drawImage(cur, 0, 0, h2.width, h2.height);
     cur = h2;
   }
-  const a = document.createElement('canvas');
-  a.width = w; a.height = src.height;
+  const a = newCanvas(w, src.height);
   const ax = a.getContext('2d'); ax.imageSmoothingQuality = 'high';
   ax.drawImage(cur, 0, 0, w, src.height);
-  const out = document.createElement('canvas');
-  out.width = src.width; out.height = src.height;
+  const out = newCanvas(src.width, src.height);
   out.w = src.w; out.h = src.h; out.dpr = src.dpr;
   const ox = out.getContext('2d');
   ox.imageSmoothingQuality = 'high';
@@ -186,8 +190,7 @@ export function smeared(src, k = 6) {
 /** Re-tints a baked layer into a reusable scratch canvas: source-atop fill.
  *  Cached against the colour key so it only re-runs when the colour moves. */
 export function tinter(src) {
-  const c = document.createElement('canvas');
-  c.width = src.width; c.height = src.height;
+  const c = newCanvas(src.width, src.height);
   c.w = src.w; c.h = src.h;
   const x = c.getContext('2d');
   let key = '';

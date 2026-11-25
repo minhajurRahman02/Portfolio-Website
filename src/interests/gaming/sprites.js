@@ -18,7 +18,8 @@ export const C = {
 };
 
 export function pcanvas(w, h) {
-  const c = document.createElement('canvas');
+  // a DOM canvas on the page, an OffscreenCanvas in the painting worker
+  const c = typeof document !== 'undefined' ? document.createElement('canvas') : new OffscreenCanvas(w, h);
   c.width = w; c.height = h;
   const x = c.getContext('2d');
   x.imageSmoothingEnabled = false;

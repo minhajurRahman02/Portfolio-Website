@@ -4,8 +4,10 @@
    gold where the lanterns catch it, and the dishes on the counter light
    up one at a time as you scroll, like a stall menu. */
 import { FOOD } from '../config.js';
-import { TAU, rng, clamp, lerp, ease, inv, bake, blurred, track, trackNum, rgb, hex2rgb, mixRGB } from '../util.js';
-import { vgrad, glow, makeStars, drawStars, rr, frond, speckle } from '../paint.js';
+import { TAU, rng, lerp, ease, inv, track, rgb } from '../util.js';
+import { vgrad, glow, makeStars, drawStars, rr } from '../paint.js';
+import { baked } from '../bakery.js';
+import { geom } from './food-paint.js';
 import { field } from '../particles.js';
 import { layer, push } from '../depth.js';
 
@@ -20,46 +22,9 @@ export default function create() {
   const crowdT = { v: 0 };
 
   function build(env) {
-    const { W, H, dpr, mobile, pscale } = env;
+    const { W, H, mobile, pscale } = env;
     const r = rng(808);
-    const wide = W > 900;
-    const stall = wide ? { x: W * 0.46, w: W * 0.42 } : { x: W * 0.06, w: W * 0.88 };
-    stall.y = H * 0.5; stall.counter = H * 0.66;
-
-    const roofs = bake(W, H * 0.4, dpr, (x, w, h) => {
-      let px = 0;
-      x.fillStyle = '#2B1E3A';
-      while (px < w) {
-        const bw = r.range(60, 160), bh = h * r.range(0.35, 0.8);
-        x.fillRect(px, h - bh, bw, bh);
-        if (r() < 0.5) { x.fillRect(px + bw * 0.2, h - bh - 18, 22, 18); x.fillRect(px + bw * 0.2 - 3, h - bh - 20, 28, 4); }
-        if (r() < 0.4) { x.beginPath(); x.moveTo(px - 4, h - bh); x.lineTo(px + bw / 2, h - bh - 22); x.lineTo(px + bw + 4, h - bh); x.fill(); }
-        for (let wy = h - bh + 10; wy < h - 6; wy += 16) for (let wx = px + 8; wx < px + bw - 8; wx += 18) if (r() < 0.25) { x.fillStyle = r.pick(['#FFB347', '#FFD27F', '#FF8A5C']); x.globalAlpha = r.range(0.5, 0.9); x.fillRect(wx, wy, 6, 8); x.globalAlpha = 1; x.fillStyle = '#2B1E3A'; }
-        px += bw + r.range(-6, 10);
-      }
-    });
-
-    /* back row of stalls, each with a lantern glow recorded for live drawing */
-    const backGlows = [];
-    const back = bake(W, H * 0.34, dpr, (x, w, h) => {
-      let px = -20;
-      while (px < w) {
-        const sw = r.range(90, 150);
-        const col = r.pick(['#3D2A4E', '#43304A', '#352646']);
-        x.fillStyle = col; x.fillRect(px, h * 0.32, sw - 8, h * 0.68);
-        x.fillStyle = r.pick(['#8A3A3A', '#3A5A6A', '#7A5A2A', '#5A3A6A']);
-        x.beginPath(); x.moveTo(px - 6, h * 0.34); x.lineTo(px + sw * 0.5 - 4, h * 0.16); x.lineTo(px + sw - 2, h * 0.34); x.fill();
-        x.fillStyle = 'rgba(255,180,90,.25)'; x.fillRect(px + 6, h * 0.45, sw - 20, h * 0.2);
-        backGlows.push([px + sw / 2, H * 0.66 - h + h * 0.4, r() * TAU]);
-        px += sw;
-      }
-    });
-
-    const fgLeaves = blurred(bake(W, H, 0.5, (x, w, h) => {
-      for (let k = 0; k < 6; k++) frond(x, -20, h * r.range(0.6, 1.05), r.range(w * 0.18, w * 0.3), r.range(-0.9, -0.1), r.pick(['#14261A', '#1A3022', '#0F1E14']), r, 7, 0.32);
-      for (let k = 0; k < 5; k++) frond(x, w + 20, h * r.range(0.65, 1.05), r.range(w * 0.16, w * 0.28), Math.PI + r.range(0.1, 0.9), r.pick(['#14261A', '#1A3022', '#0F1E14']), r, 7, 0.32);
-    }), 9);
-
+    const { stall, wide } = geom(W, H);
     const strings = [0, 1, 2].map((k) => ({
       y0: H * (0.08 + k * 0.07), y1: H * (0.12 + k * 0.05), sag: H * (0.08 + k * 0.02), n: 16 + k * 4, ph: r() * TAU,
     }));
@@ -74,11 +39,19 @@ export default function create() {
     const steam = field({ n: Math.round(FOOD.steam * pscale), seed: 14, box: [stall.x + stall.w * 0.05, stall.counter - H * 0.4, stall.w * 0.4, H * 0.4], vx: [-8, 8], vy: [-40, -18], size: [16, 46], life: [2.5, 5], color: '#EDE6F2', style: 'soft', op: 'source-over', alpha: 0.45, wobble: 14, fadeIn: 0.25, fadeOut: 0.5 });
     const embers = field({ n: Math.round(FOOD.embers * pscale), seed: 15, box: [stall.x + stall.w * 0.04, stall.counter - H * 0.32, stall.w * 0.22, H * 0.32], vx: [-10, 10], vy: [-70, -30], size: [0.8, 1.8], life: [0.8, 2], colors: ['#FF5E3A', '#FFB347', '#FFD27F'], style: 'dot', wobble: 20 });
     const stars = makeStars(81, mobile ? 70 : 140, W, H * 0.4, 1);
-    L = { W, H, stall, roofs, back, backGlows, fgLeaves, strings, lanterns, dishes, crowd, steam, embers, stars, wide };
+    L = { W, H, env, stall, strings, lanterns, dishes, crowd, steam, embers, stars, wide, backGlows: [], ready: false };
+    attach();
+  }
+
+  /** houses, back stalls, street and the stall's timber are painted off-thread (bakery.js) */
+  function attach() {
+    const P = baked('food', L.env);
+    if (P) { Object.assign(L, P); L.ready = true; }
   }
 
   function update(s) {
     if (!L) return;
+    if (!L.ready) attach();
     L.steam.update(s.dt);
     L.embers.update(s.dt);
     for (const c of L.crowd) { c.x += c.dir * c.v * s.dt; if (c.x > s.W * 1.2) c.x = -s.W * 0.2; if (c.x < -s.W * 0.2) c.x = s.W * 1.2; }
@@ -135,7 +108,7 @@ export default function create() {
       drawStars(ctx, L.stars, t, ease(0.15, 0.9, p) * 0.8);
       glow(ctx, W * 0.3, H * 0.58, W * 0.5, rgb(hor), 0.25 * (1 - p));
     });
-    layer(ctx, s, 0.08, () => { ctx.drawImage(L.roofs, 0, H * 0.58 - L.roofs.h, W, L.roofs.h); });
+    if (L.ready) layer(ctx, s, 0.08, () => { ctx.drawImage(L.roofs, 0, H * 0.58 - L.roofs.h, W, L.roofs.h); });
 
     /* string lights in catenary curves */
     layer(ctx, s, 0.15, () => {
@@ -159,10 +132,13 @@ export default function create() {
 
     layer(ctx, s, 0.3, () => {
       // the street: warm stone catching lantern light
-      ctx.fillStyle = vgrad(ctx, 0, H * 0.64, H, [[0, '#3A2436'], [0.4, '#2A1A26'], [1, '#160E16']]);
-      ctx.fillRect(-40, H * 0.64, W + 80, H * 0.5);
-      ctx.fillStyle = 'rgba(255,190,120,.05)';
-      for (let k = 0; k < 9; k++) ctx.fillRect(-40, H * (0.68 + k * k * 0.004), W + 80, 1);
+      if (!L.ready) {
+        ctx.fillStyle = vgrad(ctx, 0, H * 0.64, H, [[0, '#3A2436'], [0.4, '#2A1A26'], [1, '#160E16']]);
+        ctx.fillRect(-40, H * 0.64, W + 80, H * 0.5);
+        return;
+      }
+      ctx.fillStyle = '#160E16'; ctx.fillRect(-40, H * 0.64, 40, H); ctx.fillRect(W, H * 0.64, 40, H);
+      ctx.drawImage(L.street, 0, H * 0.64, W, L.street.h);
       ctx.drawImage(L.back, 0, H * 0.66 - L.back.h, W, L.back.h);
       for (const [x, y, ph] of L.backGlows) glow(ctx, x, y, 60, '#FFB347', 0.35 + 0.1 * Math.sin(t * 2 + ph));
     });
@@ -170,42 +146,12 @@ export default function create() {
     /* the main stall */
     layer(ctx, s, 0.55, () => {
       const sx = stall.x, sw = stall.w, sy = stall.y, cy = stall.counter;
-      // back wall glow
-      ctx.fillStyle = vgrad(ctx, 0, sy, cy, [[0, '#4A2A2A'], [1, '#6A3A2A']]);
-      ctx.fillRect(sx, sy, sw, cy - sy);
-      glow(ctx, sx + sw / 2, cy - (cy - sy) * 0.3, sw * 0.6, '#FFB347', 0.35);
-      // posts
-      ctx.fillStyle = '#3A2418'; ctx.fillRect(sx - 6, sy - H * 0.06, 10, H); ctx.fillRect(sx + sw - 4, sy - H * 0.06, 10, H);
-      // striped awning with a scalloped edge
-      const ah = H * 0.07;
-      for (let k = 0; k < 12; k++) {
-        ctx.fillStyle = k % 2 ? '#F2E4CC' : '#C8433A';
-        ctx.beginPath(); ctx.moveTo(sx - 20 + (k / 12) * (sw + 40), sy - ah); ctx.lineTo(sx - 20 + ((k + 1) / 12) * (sw + 40), sy - ah); ctx.lineTo(sx - 30 + ((k + 1) / 12) * (sw + 60), sy); ctx.lineTo(sx - 30 + (k / 12) * (sw + 60), sy); ctx.fill();
-        ctx.beginPath(); ctx.arc(sx - 30 + ((k + 0.5) / 12) * (sw + 60), sy, (sw + 60) / 24, 0, Math.PI); ctx.fill();
-      }
+      if (L.ready) ctx.drawImage(L.stallSpr, 0, 0, W, H);
+      glow(ctx, sx + sw / 2, cy - (cy - sy) * 0.3, sw * 0.6, '#FFB347', 0.22);
       // grill with embers
       const gx = sx + sw * 0.06, gw = sw * 0.24;
-      ctx.fillStyle = '#1E1A1C'; ctx.fillRect(gx, cy - H * 0.05, gw, H * 0.05);
-      const eg = ctx.createLinearGradient(0, cy - H * 0.05, 0, cy - H * 0.03);
-      eg.addColorStop(0, '#FF5E3A'); eg.addColorStop(1, '#8A1E10');
-      ctx.fillStyle = eg; ctx.fillRect(gx + 4, cy - H * 0.05, gw - 8, H * 0.012);
       glow(ctx, gx + gw / 2, cy - H * 0.05, gw * 0.9, '#FF5E3A', 0.45 + 0.1 * Math.sin(t * 7));
-      for (let k = 0; k < 6; k++) { ctx.strokeStyle = '#B0542A'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(gx + 10 + k * gw / 7, cy - H * 0.052); ctx.lineTo(gx + 18 + k * gw / 7, cy - H * 0.075); ctx.stroke(); }
-      // pots
-      for (const [px, pw] of [[sx + sw * 0.34, sw * 0.1], [sx + sw * 0.46, sw * 0.08]]) {
-        ctx.fillStyle = '#5A5A62'; rr(ctx, px, cy - H * 0.07, pw, H * 0.07, 6); ctx.fill();
-        ctx.fillStyle = '#7A7A84'; ctx.fillRect(px - 3, cy - H * 0.072, pw + 6, 4);
-      }
-      // counter
-      ctx.fillStyle = vgrad(ctx, 0, cy, H, [[0, '#8A5A3A'], [0.1, '#6A4028'], [1, '#2A180E']]);
-      ctx.fillRect(sx - 20, cy, sw + 40, H - cy);
-      ctx.fillStyle = 'rgba(255,220,170,.35)'; ctx.fillRect(sx - 20, cy, sw + 40, 2);
-      // planks, and a chalk menu board on the counter front
-      ctx.fillStyle = 'rgba(0,0,0,.18)';
-      for (let k = 1; k < 9; k++) ctx.fillRect(sx - 20 + (k / 9) * (sw + 40), cy + 6, 2, H - cy);
       const mw = Math.min(sw * 0.34, 220), mh = mw * 0.62, mx = sx + sw * 0.08, my = cy + (H - cy) * 0.22;
-      ctx.fillStyle = '#3A2418'; rr(ctx, mx - 6, my - 6, mw + 12, mh + 12, 6); ctx.fill();
-      ctx.fillStyle = '#1F2B26'; ctx.fillRect(mx, my, mw, mh);
       ctx.fillStyle = 'rgba(232,237,230,.8)';
       ctx.font = `600 ${Math.round(mw / 9)}px Georgia, serif`;
       ctx.fillText('today', mx + mw * 0.08, my + mh * 0.26);

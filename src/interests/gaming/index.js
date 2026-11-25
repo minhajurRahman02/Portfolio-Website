@@ -17,6 +17,7 @@ import { clamp, lerp, ease, inv, approach, rng } from '../util.js';
 import { C, pcanvas, pdisc, heroFrames, lifeHead, droneFrames, raptorFrames, bossSprite, craneFrames, CELL } from './sprites.js';
 import { H as LH, GROUND, makeLevel, bakeSky, bakeClouds, bakeMega, bakeCity, bakeJungle, bakeNear, bakePlayfield, bakeFG } from './stage.js';
 import { text, textW } from './font.js';
+import { baked } from '../bakery.js';
 
 const SKY_TOP = '#1e1433';
 const B = GAME.beats;
@@ -33,7 +34,20 @@ export default function create() {
   let dust = [], embers = [];
   const rnd = rng(404);
 
-  function build() {
+  let ENV = null;
+  let lit = false;   // the relit strips from the painting worker are in
+
+  /** swap the relit strips (gaming/paint.js) in once they land */
+  function attach() {
+    if (lit || !A || !ENV) return;
+    const P = baked('gaming', ENV);
+    if (!P) return;
+    Object.assign(A, { clouds: P.clouds, mega: P.mega, city: P.city, beacons: P.beacons, jungle: P.jungle, near: P.near, falls: P.falls, play: P.play, fg: P.fg });
+    lit = true;
+  }
+
+  function build(env) {
+    ENV = env; lit = false;
     const level = makeLevel(GAME.levelW);
     const city = bakeCity();
     const near = bakeNear();
@@ -49,6 +63,7 @@ export default function create() {
     };
     dust = Array.from({ length: GAME.dust }, () => ({ x: rnd() * 400, y: rnd() * LH, v: rnd.range(2, 7), ph: rnd() * 6 }));
     embers = Array.from({ length: GAME.embers }, () => ({ x: rnd() * 400, y: rnd() * LH, v: rnd.range(8, 20), ph: rnd() * 6 }));
+    attach();
   }
 
   function view(s) {
@@ -86,6 +101,7 @@ export default function create() {
   /* -------------------------------------------------------- simulation */
   function update(s) {
     if (!A) return;
+    if (!lit) attach();
     const v = view(s);
     const { p, t } = s;
     const dt = Math.min(s.dt, 0.05);

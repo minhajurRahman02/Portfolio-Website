@@ -3,83 +3,37 @@
    scroll position; every cut snaps the city to a new grade with a one-frame
    flash. Raindrops on the glass each hold a small, flipped city. */
 import { EDIT } from '../config.js';
-import { TAU, rng, clamp, lerp, ease, inv, bake, blurred, hex2rgb, rgb } from '../util.js';
-import { vgrad, glow, rr, haze, speckle } from '../paint.js';
+import { TAU, rng, clamp, ease, rgb } from '../util.js';
+import { vgrad, glow, rr } from '../paint.js';
+import { baked } from '../bakery.js';
+import { geom } from './editing-paint.js';
 import { push } from '../depth.js';
 
 export default function create() {
   let L = null;
   let lastClip = -1, flashT = -9, carT = 0;
 
-  function geom(W, H) {
-    const win = { x: W * 0.035, y: H * 0.05, w: W * 0.93, h: H * 0.6 };
-    const mw = clamp(W * 0.46, 300, 760), mh = mw * 0.56;
-    // on wide screens the monitor sits right of centre, clear of the glass card
-    const mcx = W > 900 ? W * 0.6 : W * 0.5;
-    const mon = { x: mcx - mw / 2, y: H * 0.6 - mh * 0.55, w: mw, h: mh };
-    const scr = { x: mon.x + mw * 0.025, y: mon.y + mh * 0.04, w: mw * 0.95, h: mh * 0.88 };
-    return { win, mon, scr, desk: H * 0.8 };
-  }
-
   function build(env) {
-    const { W, H, dpr, mobile } = env;
+    const { W, H, mobile } = env;
     const G = geom(W, H);
     const r = rng(303);
-    const cw = Math.round(G.win.w * 1.15), ch = Math.round(G.win.h);
-
-    const sky = bake(cw, ch, 1, (x, w, h) => {
-      x.fillStyle = vgrad(x, 0, 0, h, [[0, '#070912'], [0.6, '#151A30'], [1, '#3A2E3E']]);
-      x.fillRect(0, 0, w, h);
-      haze(x, w, h * 0.55, h * 0.4, '#5A3E4A', 0.5);
-    });
-
-    const towers = (seed, n, hMin, hMax, col, lit, density, baseY) => bake(cw, ch, dpr, (x, w, h) => {
-      const rr2 = rng(seed);
-      let px = -20;
-      while (px < w) {
-        const bw = rr2.range(26, 70) * (w / 1200 + 0.4), bh = h * rr2.range(hMin, hMax);
-        const top = h * baseY - bh;
-        x.fillStyle = col;
-        x.fillRect(px, top, bw, h);
-        if (rr2() < 0.3) x.fillRect(px + bw * 0.4, top - bh * 0.12, bw * 0.2, bh * 0.12);
-        // windows
-        for (let wy = top + 6; wy < h * baseY - 4; wy += 6) {
-          for (let wx = px + 4; wx < px + bw - 4; wx += 5) {
-            if (rr2() < density) { x.fillStyle = rr2.pick(lit); x.globalAlpha = rr2.range(0.45, 1); x.fillRect(wx, wy, 2.4, 3); }
-          }
-        }
-        x.globalAlpha = 1;
-        px += bw + rr2.range(2, 12);
-      }
-    });
-    const far = towers(31, 0, 0.18, 0.5, '#161A2C', ['#7A88B8', '#B6A4D8', '#FFE2A8'], 0.12, 0.8);
-    const mid = towers(32, 0, 0.3, 0.75, '#0E1120', ['#FFD08A', '#FFF1C9', '#A8E6FF', '#FF9E45'], 0.22, 0.9);
-    const beacons = Array.from({ length: 12 }, () => [r() * cw, ch * r.range(0.2, 0.55), r() * TAU]);
-
-    /* a thumbnail of the city for the raindrop lenses and the program monitor */
-    const thumb = bake(Math.round(cw / 5), Math.round(ch / 5), 1, (x, w, h) => {
-      x.drawImage(sky, 0, 0, w, h); x.drawImage(far, 0, 0, w, h); x.drawImage(mid, 0, 0, w, h);
-    });
-
     const drops = Array.from({ length: Math.round(EDIT.rain * (mobile ? 0.5 : 1)) }, () => ({
       x: G.win.x + r() * G.win.w, y: G.win.y + r() * G.win.h, r: r.range(2.5, 7.5), trickle: r() < 0.25, v: r.range(8, 30), ph: r() * 10,
     }));
     const cars = Array.from({ length: EDIT.cars }, (_, k) => ({ lane: k % 2, x: r(), v: r.range(0.04, 0.09), len: r.range(0.6, 1.4) }));
+    L = { W, H, G, env, drops, cars, ready: false };
+    attach();
+  }
 
-    /* foreground: an out-of-focus mug and lamp edge */
-    const fg = blurred(bake(W, H, 0.5, (x, w, h) => {
-      x.fillStyle = '#1C1A22'; rr(x, w * 0.04, h * 0.72, w * 0.1, h * 0.26, 10); x.fill();
-      x.strokeStyle = '#1C1A22'; x.lineWidth = w * 0.014; x.beginPath(); x.arc(w * 0.145, h * 0.82, h * 0.05, -1.2, 1.2); x.stroke();
-      x.fillStyle = 'rgba(255,200,140,.25)'; x.fillRect(w * 0.05, h * 0.73, w * 0.012, h * 0.24);
-      x.fillStyle = '#121119'; x.beginPath(); x.moveTo(w * 0.86, h); x.lineTo(w * 0.9, h * 0.62); x.lineTo(w * 1.02, h * 0.58); x.lineTo(w * 1.02, h); x.fill();
-      x.fillStyle = 'rgba(255,170,90,.35)'; x.beginPath(); x.ellipse(w * 0.96, h * 0.6, w * 0.06, h * 0.02, -0.2, 0, TAU); x.fill();
-    }), 10);
-
-    L = { W, H, G, cw, ch, sky, far, mid, beacons, thumb, drops, cars, fg };
+  /** the city, room and desk are painted off-thread (bakery.js) */
+  function attach() {
+    const P = baked('editing', L.env);
+    if (P) { Object.assign(L, P); L.ready = true; }
   }
 
   function update(s) {
     if (!L) return;
+    if (!L.ready) attach();
     carT += s.dt;
     for (const d of L.drops) if (d.trickle) { d.y += d.v * s.dt * (0.3 + 0.7 * (Math.sin(s.t * 0.7 + d.ph) > 0.6 ? 1 : 0)); if (d.y > L.G.win.y + L.G.win.h) d.y = L.G.win.y; }
   }
@@ -93,21 +47,34 @@ export default function create() {
     const g = EDIT.grades[clip];
     const pan = (p - 0.5) * W * 0.05;
 
-    ctx.fillStyle = '#07080E';
-    ctx.fillRect(0, 0, W, H);
+    if (L.ready) ctx.drawImage(L.wall, 0, 0, W, H);
+    else { ctx.fillStyle = '#07080E'; ctx.fillRect(0, 0, W, H); }
+    if (!L.ready) {
+      // still painting: the night through the glass and a dark desk, for a moment
+      ctx.fillStyle = vgrad(ctx, 0, win.y, win.y + win.h, [[0, '#070912'], [0.7, '#151A30'], [1, '#3A2E3E']]);
+      ctx.fillRect(win.x, win.y, win.w, win.h);
+      ctx.fillStyle = '#17121A'; ctx.fillRect(0, desk, W, H - desk);
+      return;
+    }
 
     /* the city, inside the window */
     ctx.save();
     ctx.beginPath(); ctx.rect(win.x, win.y, win.w, win.h); ctx.clip();
     const bx = win.x - (L.cw - win.w) / 2;
     const p0 = push(s, 0.05), p1 = push(s, 0.12), p2 = push(s, 0.3);
-    ctx.drawImage(L.sky, bx - pan * 0.1 + p0.x, win.y + p0.y);
+    ctx.drawImage(L.sky, bx - pan * 0.1 + p0.x, win.y + p0.y, L.cw, L.ch);
     ctx.drawImage(L.far, bx - pan * 0.3 + p1.x, win.y + p1.y, L.cw, L.ch);
-    for (const [x, y, ph] of L.beacons) {
+    for (const [x, y, ph, near] of L.beacons) {
+      if (near) continue;
       const on = Math.sin(t * 2 + ph) > 0.85;
-      if (on) glow(ctx, bx - pan * 0.3 + x, win.y + y, 10, '#FF3B3B', 0.9);
+      if (on) glow(ctx, bx - pan * 0.3 + p1.x + x, win.y + p1.y + y, 8, '#FF3B3B', 0.9);
     }
     ctx.drawImage(L.mid, bx - pan * 0.6 + p2.x, win.y + win.h * 0.06 + p2.y, L.cw, L.ch);
+    for (const [x, y, ph, near] of L.beacons) {
+      if (!near) continue;
+      const on = Math.sin(t * 2 + ph) > 0.8;
+      if (on) { glow(ctx, bx - pan * 0.6 + p2.x + x, win.y + p2.y + y, 14, '#FF3B3B', 0.9); ctx.fillStyle = '#FF6A5A'; ctx.fillRect(bx - pan * 0.6 + p2.x + x - 1, win.y + p2.y + y - 1, 2, 2); }
+    }
     // street: long-exposure trails whose length follows scroll speed
     const sy = win.y + win.h * 0.93;
     const stretch = 1 + Math.min(5, Math.abs(s.vel) / 260);
@@ -180,20 +147,7 @@ export default function create() {
     const dpu = push(s, 0.6);
     ctx.save();
     ctx.translate(dpu.x, dpu.y);
-    ctx.fillStyle = vgrad(ctx, 0, desk, H, [[0, '#2A2028'], [1, '#120E14']]);
-    ctx.fillRect(-60, desk, W + 120, H - desk + 200);
-    ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(-60, desk, W + 120, 1.5);
-    // keyboard
-    const kw = mon.w * 0.62, kx = mon.x + mon.w / 2 - kw / 2, ky = desk + (H - desk) * 0.35;
-    ctx.fillStyle = '#17141C'; rr(ctx, kx, ky, kw, (H - desk) * 0.28, 6); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.05)';
-    for (let i = 0; i < 14; i++) for (let j = 0; j < 4; j++) ctx.fillRect(kx + 8 + i * (kw - 16) / 14, ky + 6 + j * (H - desk) * 0.06, (kw - 16) / 14 - 3, (H - desk) * 0.045);
-    // monitor stand + bezel
-    ctx.fillStyle = '#16151C';
-    ctx.fillRect(mon.x + mon.w / 2 - 14, mon.y + mon.h, 28, desk - mon.y - mon.h + 6);
-    ctx.fillRect(mon.x + mon.w / 2 - 70, desk - 2, 140, 8);
-    rr(ctx, mon.x, mon.y, mon.w, mon.h, 10); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(mon.x + 10, mon.y + 1, mon.w - 20, 1.2);
+    ctx.drawImage(L.desk, 0, 0, W, H);
     screen(ctx, s, scr, g, clip);
     // reflection of the screen on the desk
     ctx.globalAlpha = 0.12;

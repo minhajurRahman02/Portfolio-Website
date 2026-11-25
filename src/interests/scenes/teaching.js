@@ -4,8 +4,10 @@
    the motes keep rising until they are the stars. Then a sunrise in the
    first scene's dawn palette, so the page ends on the light it opened with. */
 import { TEACH } from '../config.js';
-import { TAU, rng, clamp, lerp, ease, inv, bake, blurred, rgb, mixRGB, hex2rgb, smooth } from '../util.js';
-import { vgrad, glow, ridge, makeStars, drawStars, rr, speckle } from '../paint.js';
+import { TAU, rng, clamp, lerp, ease, inv, rgb, mixRGB, hex2rgb, smooth } from '../util.js';
+import { vgrad, glow, ridge, makeStars, drawStars, rr } from '../paint.js';
+import { baked } from '../bakery.js';
+import { geom } from './teaching-paint.js';
 import { layer, push } from '../depth.js';
 
 export default function create() {
@@ -14,67 +16,7 @@ export default function create() {
   function build(env) {
     const { W, H, dpr, mobile, pscale } = env;
     const r = rng(909);
-    const wide = W > 900;
-    const board = wide ? { x: W * 0.08, y: H * 0.1, w: W * 0.52, h: H * 0.46 } : { x: W * 0.05, y: H * 0.08, w: W * 0.9, h: H * 0.36 };
-    const deskY = H * 0.76;
-    const lamp = { x: wide ? W * 0.56 : W * 0.72, y: deskY - H * 0.22 };
-
-    const room = bake(W, H, dpr, (x, w, h) => {
-      x.fillStyle = vgrad(x, 0, 0, h, [[0, '#121A17'], [1, '#1C2622']]);
-      x.fillRect(0, 0, w, h);
-      speckle(x, 0, 0, w, h, 1800, ['#0C1210', '#26322C'], 91, 0.6, 1.8, 0.4);
-      // board frame + slate
-      x.fillStyle = '#4A3424'; x.fillRect(board.x - 12, board.y - 12, board.w + 24, board.h + 24);
-      x.fillStyle = '#1F2B26'; x.fillRect(board.x, board.y, board.w, board.h);
-      // old erased smudges
-      for (let k = 0; k < 22; k++) {
-        const sx = board.x + r() * board.w, sy = board.y + r() * board.h, sr = r.range(20, 80);
-        const g = x.createRadialGradient(sx, sy, 0, sx, sy, sr);
-        g.addColorStop(0, 'rgba(232,237,230,.05)'); g.addColorStop(1, 'rgba(232,237,230,0)');
-        x.fillStyle = g; x.fillRect(sx - sr, sy - sr, sr * 2, sr * 2);
-      }
-      x.fillStyle = '#5A4030'; x.fillRect(board.x - 14, board.y + board.h + 10, board.w + 28, 8);
-      x.fillStyle = '#E8EDE6'; x.fillRect(board.x + board.w * 0.2, board.y + board.h + 6, 18, 4); x.fillRect(board.x + board.w * 0.24, board.y + board.h + 7, 10, 3);
-      // shelves with a globe and books
-      if (wide) {
-        const shx = W * 0.68, shw = W * 0.26;
-        for (let k = 0; k < 3; k++) {
-          const sy = H * (0.16 + k * 0.15);
-          x.fillStyle = '#3A2A1E'; x.fillRect(shx, sy, shw, 6);
-          let bx = shx + 6;
-          while (bx < shx + shw - 40) { const bw = r.range(8, 16), bh = r.range(28, 52); x.fillStyle = r.pick(['#4A2A2A', '#2A3A4A', '#3A4A2A', '#5A4A2A', '#3A2A4A']); x.fillRect(bx, sy - bh, bw, bh); bx += bw + 1; }
-        }
-        const gx = shx + shw - 26, gy = H * 0.16 - 26;
-        x.fillStyle = '#3A5A6A'; x.beginPath(); x.arc(gx, gy, 18, 0, TAU); x.fill();
-        x.fillStyle = '#5A7A4A'; x.beginPath(); x.ellipse(gx - 5, gy - 4, 7, 5, 0.5, 0, TAU); x.ellipse(gx + 6, gy + 6, 5, 4, 0, 0, TAU); x.fill();
-        x.strokeStyle = '#8A6A3A'; x.lineWidth = 2; x.beginPath(); x.arc(gx, gy, 22, -2.2, 0.9); x.stroke();
-      }
-      // the wall's top edge melts into the night above, so the room can sink away cleanly
-      x.globalCompositeOperation = 'destination-out';
-      x.fillStyle = vgrad(x, 0, 0, h * 0.14, [[0, 'rgba(0,0,0,1)'], [1, 'rgba(0,0,0,0)']]);
-      x.fillRect(0, 0, w, h * 0.14);
-      x.globalCompositeOperation = 'source-over';
-    });
-
-    const desk = bake(W, H - deskY + 10, dpr, (x, w, h) => {
-      x.fillStyle = vgrad(x, 0, 0, h, [[0, '#4A3020'], [0.06, '#3A2418'], [1, '#1A100A']]);
-      x.fillRect(0, 0, w, h);
-      x.fillStyle = 'rgba(255,220,170,.25)'; x.fillRect(0, 0, w, 2);
-      // papers and a notebook
-      x.save(); x.translate(w * 0.42, h * 0.3); x.rotate(-0.08);
-      x.fillStyle = '#E8E2D2'; x.fillRect(-90, -20, 180, 110);
-      x.strokeStyle = 'rgba(60,60,80,.3)'; for (let k = 0; k < 8; k++) { x.beginPath(); x.moveTo(-80, k * 11 - 6); x.lineTo(r.range(20, 80), k * 11 - 6); x.stroke(); }
-      x.restore();
-      x.save(); x.translate(w * 0.58, h * 0.36); x.rotate(0.14);
-      x.fillStyle = '#2E4A6B'; x.fillRect(-60, -16, 120, 90); x.fillStyle = '#E8E2D2'; x.fillRect(-56, -14, 4, 86);
-      x.restore();
-    });
-
-    const fg = blurred(bake(W, H, 0.5, (x, w, h) => {
-      x.fillStyle = '#0A0806';
-      x.beginPath(); x.moveTo(w * 0.04, h); x.lineTo(w * 0.08, h * 0.74); x.quadraticCurveTo(w * 0.17, h * 0.7, w * 0.26, h * 0.74); x.lineTo(w * 0.3, h); x.fill();
-      x.fillStyle = '#1A140E'; x.fillRect(w * 0.84, h * 0.88, w * 0.2, h * 0.12);
-    }), 10);
+    const { wide, board, deskY, lamp } = geom(W, H);
 
     /* chalk drawings as strokes we can reveal by length */
     const B = board, strokes = [];
@@ -102,7 +44,14 @@ export default function create() {
       const a = r.range(-0.42, 0.42) + Math.PI / 2 + 0.25, d = r.range(20, H * 0.55);
       return { x0: lamp.x + Math.cos(a) * d, y0: lamp.y + Math.sin(a) * d, ph: r() * TAU, sp: r.range(4, 12), star: stars[k % stars.length], s: r.range(0.6, 1.6) };
     });
-    L = { W, H, board, deskY, lamp, room, desk, fg, strokes, cells, nodes, labels, stars, motes, wide };
+    L = { W, H, env, board, deskY, lamp, strokes, cells, nodes, labels, stars, motes, wide, ready: false };
+    attach();
+  }
+
+  /** room, desk and foreground are painted off-thread (bakery.js) */
+  function attach() {
+    const P = baked('teaching', L.env);
+    if (P) { Object.assign(L, P); L.ready = true; }
   }
 
   function chalkStroke(ctx, st, k) {
@@ -122,6 +71,7 @@ export default function create() {
 
   function draw(ctx, s) {
     if (!L) return;
+    if (!L.ready) attach();
     const { W, H, p, t } = s;
     const { lamp } = L;
     const lift = ease(0.4, 0.8, p);          // the room dissolves
@@ -150,7 +100,10 @@ export default function create() {
     if (ra > 0.01) {
       ctx.save();
       ctx.globalAlpha = ra;
-      layer(ctx, s, 0.15, () => { ctx.drawImage(L.room, 0, ry, W, H); });
+      layer(ctx, s, 0.15, () => {
+        if (L.ready) ctx.drawImage(L.room, 0, ry, W, H);
+        else { ctx.fillStyle = '#141C19'; ctx.fillRect(0, ry + H * 0.1, W, H); ctx.fillStyle = '#1F2B26'; ctx.fillRect(L.board.x, L.board.y + ry, L.board.w, L.board.h); }
+      });
       // chalk
       layer(ctx, s, 0.15, () => {
         ctx.save();
@@ -158,6 +111,10 @@ export default function create() {
         ctx.strokeStyle = 'rgba(232,237,230,.85)';
         ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         for (const st of L.strokes) chalkStroke(ctx, st, clamp(inv(st.start, st.end, draw)));
+        ctx.save();
+        ctx.strokeStyle = 'rgba(232,237,230,.35)'; ctx.lineWidth = 3.4; ctx.setLineDash([1.2, 2.1]);
+        for (const st of L.strokes) chalkStroke(ctx, st, clamp(inv(st.start, st.end, draw)));
+        ctx.restore();
         const cs = L.board.w * 0.04;
         for (const [x, y, v, d] of L.cells) {
           const k = clamp(inv(0.02 + d * 0.06, 0.06 + d * 0.06, draw));
@@ -185,7 +142,8 @@ export default function create() {
       // desk, lamp and its cone of light
       layer(ctx, s, 0.55, () => {
         const dy = ry * 1.35;
-        ctx.drawImage(L.desk, 0, L.deskY + dy, W, L.desk.h);
+        if (L.ready) ctx.drawImage(L.desk, 0, L.deskY + dy, W, L.desk.h);
+        else { ctx.fillStyle = '#2A1A10'; ctx.fillRect(0, L.deskY + dy, W, H); }
         const lx = lamp.x, ly = lamp.y + dy;
         ctx.globalCompositeOperation = 'lighter';
         const cg = ctx.createLinearGradient(lx, ly, lx, L.deskY + dy);
@@ -195,13 +153,25 @@ export default function create() {
         ctx.globalCompositeOperation = 'source-over';
         glow(ctx, lx, L.deskY + dy + 4, W * 0.2, '#FFCF7A', 0.35);
         // lamp body
-        ctx.strokeStyle = '#2A2A30'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(lx + 40, L.deskY + dy); ctx.lineTo(lx + 54, ly - 40); ctx.lineTo(lx + 6, ly - 6); ctx.stroke();
-        ctx.fillStyle = '#2A2A30'; ctx.beginPath(); ctx.moveTo(lx - 22, ly + 6); ctx.lineTo(lx + 22, ly + 6); ctx.lineTo(lx + 10, ly - 14); ctx.lineTo(lx - 10, ly - 14); ctx.fill();
-        ctx.fillStyle = '#1A1A20'; ctx.fillRect(lx + 26, L.deskY + dy - 6, 30, 6);
+        ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.ellipse(lx + 42, L.deskY + dy + 1, 24, 4, 0, 0, TAU); ctx.fill();
+        ctx.strokeStyle = '#26262C'; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(lx + 40, L.deskY + dy - 4); ctx.lineTo(lx + 54, ly - 40); ctx.lineTo(lx + 6, ly - 8); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,220,160,.35)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(lx + 39, L.deskY + dy - 4); ctx.lineTo(lx + 53, ly - 40); ctx.lineTo(lx + 6, ly - 9); ctx.stroke();
+        for (const [jx, jy] of [[lx + 54, ly - 40], [lx + 40, L.deskY + dy - 4]]) { ctx.fillStyle = '#3A3A42'; ctx.beginPath(); ctx.arc(jx, jy, 3.5, 0, TAU); ctx.fill(); }
+        const shg = ctx.createLinearGradient(lx - 22, 0, lx + 22, 0);
+        shg.addColorStop(0, '#1A3A30'); shg.addColorStop(0.4, '#3E6A58'); shg.addColorStop(1, '#10241E');
+        ctx.fillStyle = shg; ctx.beginPath(); ctx.moveTo(lx - 22, ly + 6); ctx.lineTo(lx + 22, ly + 6); ctx.lineTo(lx + 10, ly - 14); ctx.lineTo(lx - 10, ly - 14); ctx.fill();
+        ctx.fillStyle = '#C8B070'; ctx.fillRect(lx - 22, ly + 5, 44, 1.6);
+        ctx.fillStyle = vgrad(ctx, 0, L.deskY + dy - 7, L.deskY + dy, [[0, '#3A3A42'], [1, '#141418']]); rr(ctx, lx + 24, L.deskY + dy - 7, 34, 7, 2); ctx.fill();
         glow(ctx, lx, ly + 6, 30, '#FFF2C2', 0.9);
         // mug
-        ctx.fillStyle = '#7A3A2A'; rr(ctx, lx - W * 0.12, L.deskY + dy - 30, 24, 30, 4); ctx.fill();
+        const mx2 = lx - W * 0.12, my2 = L.deskY + dy - 30;
+        const mgr = ctx.createLinearGradient(mx2, 0, mx2 + 24, 0);
+        mgr.addColorStop(0, '#4A2018'); mgr.addColorStop(0.7, '#9A4A30'); mgr.addColorStop(1, '#5A2418');
+        ctx.fillStyle = mgr; rr(ctx, mx2, my2, 24, 30, 4); ctx.fill();
+        ctx.strokeStyle = '#7A3A2A'; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.arc(mx2 + 26, my2 + 14, 6, -1.3, 1.3); ctx.stroke();
+        ctx.fillStyle = '#2A1408'; ctx.beginPath(); ctx.ellipse(mx2 + 12, my2 + 1.5, 10.5, 2.2, 0, 0, TAU); ctx.fill();
       });
       ctx.restore();
     }
@@ -223,7 +193,7 @@ export default function create() {
     if (ra > 0.01) {
       const fp = push(s, 1.1);
       ctx.globalAlpha = ra;
-      ctx.drawImage(L.fg, fp.x, fp.y + ry * 1.4, W, H);
+      if (L.ready) ctx.drawImage(L.fg, fp.x, fp.y + ry * 1.4, W, H);
       ctx.globalAlpha = 1;
     }
   }

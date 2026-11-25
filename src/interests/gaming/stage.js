@@ -38,13 +38,22 @@ export function makeLevel(levelW) {
 }
 
 /* ------------------------------------------------------------- sky */
+/* A sunset painted at the pixel grid: twelve tones from night violet to
+   gold, ordered-dithered between neighbours; a sun with a brighter core and
+   a dithered corona; thin bands of cloud crossing it, lit from below; high
+   cirrus catching pink in the upper sky. */
+const SKY12 = ['#160f2c', '#1e1433', '#2c1840', '#3a1d45', '#4e2249', '#62284f', '#7c2e51', '#93354f', '#ad3f4b', '#c64c46', '#e0603f', '#e8703d', '#f4843f', '#ff9a4a', '#ffb05a', '#ffc46e'];
 export function bakeSky(w, h) {
   const c = pcanvas(w, h);
   const im = c.x.createImageData(w, h);
-  const cols = SKY.map(hx);
+  const cols = SKY12.map(hx);
   const horizon = h - 70;
   const sx = Math.round(w * 0.66), sy = horizon - 22, sr = 17;
-  const sun = hx('#fff1b8'), sunEdge = hx('#ffd27a');
+  const sun = hx('#fff6d0'), sunMid = hx('#ffe9a8'), sunEdge = hx('#ffd27a');
+  const band = hx('#93354f'), bandLit = hx('#e8703d'), cir = hx('#d86a7a'), cirL = hx('#ffa48a');
+  const n = (x, y) => { const k = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453; return k - Math.floor(k); };
+  // cheap smooth noise for cirrus: a few summed sines along a slant
+  const cirrus = (x, y) => Math.sin(x * 0.045 + y * 0.31) * 0.5 + Math.sin(x * 0.017 - y * 0.12 + 2) * 0.35 + Math.sin(x * 0.11 + y * 0.6) * 0.15;
   for (let y = 0; y < h; y++) {
     const u = Math.min(1, Math.max(0, (y - (h - 216)) / horizon)) * (cols.length - 1);
     const i = Math.min(cols.length - 2, Math.floor(u));
@@ -52,10 +61,20 @@ export function bakeSky(w, h) {
     for (let x = 0; x < w; x++) {
       let col = dither(x, y, f) ? cols[i + 1] : cols[i];
       const d = Math.hypot(x - sx, (y - sy) * 1.05);
-      if (d < sr) col = d > sr - 2 ? sunEdge : sun;
-      else if (d < sr + 22) { const t = 1 - (d - sr) / 22; if (dither(x, y, t * 0.7)) col = cols[cols.length - 1]; }
-      // horizontal cloud streaks across the sun
-      if ((Math.abs(y - (sy + 6)) < 1 || Math.abs(y - (sy - 4)) < 1 || Math.abs(y - (sy + 12)) < 2) && Math.abs(x - sx) < 70 - Math.abs(y - sy) * 2 && ((x * 7 + y * 3) % 23) > 4) col = cols[3];
+      if (d < sr) col = d > sr - 2 ? sunEdge : d > sr * 0.55 ? sunMid : sun;
+      else if (d < sr + 34) {
+        const t = 1 - (d - sr) / 34;
+        if (dither(x, y, t * t * 0.9)) col = t > 0.55 ? cols[cols.length - 1] : cols[cols.length - 2];
+      }
+      // cloud bands across the sun, their undersides lit
+      for (const [cy, th] of [[sy + 6, 1], [sy - 4, 1], [sy + 12, 2], [sy + 19, 1]]) {
+        if (Math.abs(y - cy) < th && Math.abs(x - sx) < 90 - Math.abs(y - sy) * 2 && ((x * 7 + y * 3) % 23) > 4) col = y > cy - 0.5 && Math.abs(x - sx) < 40 ? bandLit : band;
+      }
+      // high cirrus, upper half only, pink where the sun reaches them
+      if (y < horizon * 0.55) {
+        const v = cirrus(x, y) + (n(x, y) - 0.5) * 0.25;
+        if (v > 0.62 && dither(x, y, (v - 0.62) * 3)) col = Math.abs(x - sx) < w * 0.35 ? cirL : cir;
+      }
       const k = (y * w + x) * 4;
       im.data[k] = col[0]; im.data[k + 1] = col[1]; im.data[k + 2] = col[2]; im.data[k + 3] = 255;
     }
